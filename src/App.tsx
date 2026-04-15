@@ -3,23 +3,23 @@ import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import axios from 'axios';
-import { 
-  Terminal as TerminalIcon, 
-  Zap, 
-  Settings, 
-  History as HistoryIcon, 
-  Info, 
-  Layout, 
-  Code, 
-  Globe, 
-  Download, 
-  Activity, 
-  Users, 
-  Plus, 
-  Trash2, 
-  Play, 
-  FileJson, 
-  Upload, 
+import {
+  Terminal as TerminalIcon,
+  Zap,
+  Settings,
+  History as HistoryIcon,
+  Info,
+  Layout,
+  Code,
+  Globe,
+  Download,
+  Activity,
+  Users,
+  Plus,
+  Trash2,
+  Play,
+  FileJson,
+  Upload,
   Search,
   ChevronRight,
   X,
@@ -100,15 +100,15 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'terminal' | 'split' | 'rich'>('split');
   const [activeTab, setActiveTab] = useState<'terminal' | 'agents' | 'history' | 'chat' | 'skills' | 'files' | 'preview' | 'timeline' | 'deploy' | 'dashboard' | 'roadmap' | 'mcp' | 'search' | 'orchestration' | 'git' | 'secrets' | 'plugins' | 'settings'>('terminal');
   const [remoteStatus, setRemoteStatus] = useState<any>(null);
-  
+
   // Chat State
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
-  
+
   // Files State
   const [files, setFiles] = useState<any[]>([]);
   const [currentPath, setCurrentPath] = useState('.');
-  const [openFiles, setOpenFiles] = useState<{path: string, content: string, originalContent: string, isDirty: boolean}[]>([]);
+  const [openFiles, setOpenFiles] = useState<{ path: string, content: string, originalContent: string, isDirty: boolean }[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -147,7 +147,7 @@ export default function App() {
   const [config, setConfig] = useState<any | null>(null);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isModelsLoading, setIsModelsLoading] = useState(false);
-  
+
   // Real-time Sync State
   const [events, setEvents] = useState<any[]>([]);
   const [isDeploying, setIsDeploying] = useState(false);
@@ -172,7 +172,7 @@ export default function App() {
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
       setEvents(prev => [data, ...prev].slice(0, 100));
-      
+
       if (data.type === 'tool_start' || data.type === 'tool_success' || data.type === 'tool_error') {
         // Auto-refresh files if a file tool was used
         if (['write_file', 'delete_file', 'create_project', 'create_directory'].includes(data.data.name)) {
@@ -200,12 +200,12 @@ export default function App() {
   const [newSkill, setNewSkill] = useState({ name: '', description: '', prompt: '', tags: [] });
   const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<string | null>(null);
   const [pendingSkills, setPendingSkills] = useState<any[]>([]);
-const fetchPendingSkills = async () => {
-  try {
-    const res = await axios.get('/api/skills/pending');
-    setPendingSkills(res.data);
-  } catch (e) { console.error(e); }
-};
+  const fetchPendingSkills = async () => {
+    try {
+      const res = await axios.get('/api/skills/pending');
+      setPendingSkills(res.data);
+    } catch (e) { console.error(e); }
+  };
   // History Expansion
   const [expandedHistoryIndex, setExpandedHistoryIndex] = useState<number | null>(null);
   const [selectedHistoryEntry, setSelectedHistoryEntry] = useState<HistoryEntry | null>(null);
@@ -295,7 +295,7 @@ const fetchPendingSkills = async () => {
     try {
       const res = await axios.get('/api/models');
       setAvailableModels(res.data);
-    } catch (e) { 
+    } catch (e) {
       console.error(e);
       setAvailableModels([]);
     } finally {
@@ -436,7 +436,7 @@ const fetchPendingSkills = async () => {
       setHasUnsavedChanges(false);
       // Update openFiles state
       setOpenFiles(prev => prev.map(f => f.path === activeFile ? { ...f, content: fileContent, originalContent: fileContent, isDirty: false } : f));
-    } catch (e) { 
+    } catch (e) {
       console.error(e);
       setIsSaving(false);
     }
@@ -456,11 +456,11 @@ const fetchPendingSkills = async () => {
   // Auto-save logic
   useEffect(() => {
     if (!hasUnsavedChanges || !activeFile) return;
-    
+
     const timer = setTimeout(() => {
       saveFile();
     }, 2000); // 2s auto-save
-    
+
     return () => clearTimeout(timer);
   }, [fileContent, activeFile, hasUnsavedChanges]);
 
@@ -524,7 +524,7 @@ const fetchPendingSkills = async () => {
 
   useEffect(() => {
     if (!xtermRef.current || !config?.theme?.terminal) return;
-    
+
     xtermRef.current.options.fontSize = config.theme.terminal.fontSize || 14;
     xtermRef.current.options.fontFamily = config.theme.terminal.fontFamily || 'JetBrains Mono, monospace';
     xtermRef.current.options.theme = {
@@ -577,14 +577,14 @@ const fetchPendingSkills = async () => {
     let historyIndex = -1;
     term.onData(async (data) => {
       const code = data.charCodeAt(0);
-      
+
       // Detect long paste and display summary
       if (data.length > 50 || (data.length > 5 && (data.includes('\r') || data.includes('\n')))) {
         const lines = data.split(/[\r\n]+/).filter(l => l.length > 0);
         const lineCount = lines.length || 1;
         currentLine += data;
         term.write(`\x1b[36m[Pasted Text: ${lineCount} lines]\x1b[0m`);
-        
+
         // If the paste ends with a carriage return, trigger execution
         if (data.endsWith('\r') || data.endsWith('\n')) {
           if (currentLine.trim()) {
@@ -617,7 +617,7 @@ const fetchPendingSkills = async () => {
         if (history.length > 0) {
           if (historyIndex === -1) historyIndex = history.length - 1;
           else if (historyIndex > 0) historyIndex--;
-          
+
           const h = history[historyIndex];
           term.write('\b \b'.repeat(currentLine.length));
           currentLine = h;
@@ -674,7 +674,7 @@ const fetchPendingSkills = async () => {
                 } else if (matches.length > 1) {
                   term.write('\r\n' + matches.join('  ') + '\r\n$ ' + currentLine);
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
           } else if (parts[1] === 'remote') {
             if (parts.length === 2 || (parts.length === 3 && !currentLine.endsWith(' '))) {
@@ -758,7 +758,7 @@ const fetchPendingSkills = async () => {
       let loadingInterval: any;
       let dots = 0;
       const spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-      
+
       term.write('\r\n\x1b[1;36m┌─ Mimocode CLI ───────────────────────────────────────────────────────────────┐\x1b[0m');
       term.write(`\r\n\x1b[1;36m│\x1b[0m \x1b[1;33mExecuting:\x1b[0m ${cleanCmd}`);
       term.write('\r\n\x1b[1;36m└──────────────────────────────────────────────────────────────────────────────┘\x1b[0m');
@@ -771,7 +771,7 @@ const fetchPendingSkills = async () => {
 
       const apiKey = import.meta.env.VITE_MIMOCODE_API_KEY;
       const response = await axios.post('/api/exec', { command: cleanCmd, apiKey });
-      
+
       clearInterval(loadingInterval);
       // Clear "Processing..." line
       term.write('\r\x1b[K');
@@ -790,7 +790,7 @@ const fetchPendingSkills = async () => {
       }
       if (stderr) term.write('\r\n\x1b[1;31m' + stderr.replace(/\n/g, '\r\n') + '\x1b[0m');
       if (exitCode !== 0) term.writeln(`\r\n\x1b[1;31mCommand exited with code ${exitCode}\x1b[0m`);
-      
+
       // Refresh data if agents or history might have changed
       fetchAgents();
       fetchHistory();
@@ -921,12 +921,12 @@ const fetchPendingSkills = async () => {
       // Perform commit and push
       await axios.post('/api/git/commit', { message: commitMessage });
       await axios.post('/api/git/push');
-      
+
       setCommitMessage('');
       fetchGitStatus();
       setGitDiff(null);
-    } catch (e) { 
-      console.error(e); 
+    } catch (e) {
+      console.error(e);
     }
     finally { setIsCommitting(false); }
   };
@@ -994,7 +994,7 @@ const fetchPendingSkills = async () => {
     try {
       const res = await axios.post('/api/vscode/setup');
       alert(res.data.result);
-    } catch (e) { 
+    } catch (e) {
       console.error(e);
       alert('Failed to setup VS Code integration.');
     } finally {
@@ -1013,16 +1013,16 @@ const fetchPendingSkills = async () => {
   };
 
   const filteredAgents = agents.filter(a => {
-    const matchesSearch = a.name.toLowerCase().includes(agentSearchTerm.toLowerCase()) || 
-                         a.description.toLowerCase().includes(agentSearchTerm.toLowerCase());
+    const matchesSearch = a.name.toLowerCase().includes(agentSearchTerm.toLowerCase()) ||
+      a.description.toLowerCase().includes(agentSearchTerm.toLowerCase());
     const matchesTag = !selectedTag || a.tags?.includes(selectedTag);
     return matchesSearch && matchesTag;
   });
 
   const allTags = Array.from(new Set(agents.flatMap(a => a.tags || [])));
 
-  const filteredHistory = execHistory.filter(h => 
-    h.agentName.toLowerCase().includes(historySearchTerm.toLowerCase()) || 
+  const filteredHistory = execHistory.filter(h =>
+    h.agentName.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
     h.input.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
     h.output.toLowerCase().includes(historySearchTerm.toLowerCase())
   );
@@ -1052,7 +1052,7 @@ const fetchPendingSkills = async () => {
       <div className="space-y-0.5">
         {items.map((item) => (
           <div key={item.path}>
-            <button 
+            <button
               onClick={() => item.isDirectory ? fetchFiles(item.path) : readFile(item.path)}
               onContextMenu={(e) => {
                 e.preventDefault();
@@ -1065,7 +1065,7 @@ const fetchPendingSkills = async () => {
                 {getFileIcon(item.name, item.isDirectory)}
               </div>
               {isRenaming === item.path ? (
-                <input 
+                <input
                   autoFocus
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
@@ -1101,7 +1101,7 @@ const fetchPendingSkills = async () => {
             <h2 className="text-2xl font-bold text-zinc-100">Action Timeline</h2>
             <p className="text-zinc-400 text-sm">Real-time history of agent activities and deployments</p>
           </div>
-          <button 
+          <button
             onClick={() => setActiveTab('deploy')}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-indigo-500/20"
           >
@@ -1118,7 +1118,7 @@ const fetchPendingSkills = async () => {
             </div>
           ) : (
             events.map((event, i) => (
-              <motion.div 
+              <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1127,16 +1127,15 @@ const fetchPendingSkills = async () => {
                 {i !== events.length - 1 && (
                   <div className="absolute left-[15px] top-8 bottom-[-24px] w-0.5 bg-zinc-800 group-hover:bg-zinc-700 transition-colors" />
                 )}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 shadow-lg ${
-                  event.type.includes('success') || event.type === 'deploy_success' ? 'bg-green-500 text-white' :
-                  event.type.includes('error') || event.type === 'deploy_error' ? 'bg-red-500 text-white' :
-                  event.type.includes('deploy') ? 'bg-amber-500 text-white' :
-                  'bg-indigo-500 text-white'
-                }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 shadow-lg ${event.type.includes('success') || event.type === 'deploy_success' ? 'bg-green-500 text-white' :
+                    event.type.includes('error') || event.type === 'deploy_error' ? 'bg-red-500 text-white' :
+                      event.type.includes('deploy') ? 'bg-amber-500 text-white' :
+                        'bg-indigo-500 text-white'
+                  }`}>
                   {event.type.includes('chat') ? <TerminalIcon size={14} /> :
-                   event.type.includes('tool') ? <Zap size={14} /> :
-                   event.type.includes('deploy') ? <Globe size={14} /> :
-                   <Activity size={14} />}
+                    event.type.includes('tool') ? <Zap size={14} /> :
+                      event.type.includes('deploy') ? <Globe size={14} /> :
+                        <Activity size={14} />}
                 </div>
                 <div className="flex-1 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-5 hover:border-zinc-700 transition-all backdrop-blur-sm">
                   <div className="flex items-center justify-between mb-2">
@@ -1158,8 +1157,8 @@ const fetchPendingSkills = async () => {
                       <div className="space-y-3">
                         <p className="font-medium">{event.data.step}</p>
                         <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-amber-500 transition-all duration-500" 
+                          <div
+                            className="h-full bg-amber-500 transition-all duration-500"
                             style={{ width: `${event.data.progress}%` }}
                           />
                         </div>
@@ -1198,12 +1197,11 @@ const fetchPendingSkills = async () => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 mb-8">
-          <button 
+          <button
             onClick={() => handleDeploy()}
             disabled={isDeploying}
-            className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${
-              isDeploying ? 'border-indigo-500 bg-indigo-500/5' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
-            }`}
+            className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all ${isDeploying ? 'border-indigo-500 bg-indigo-500/5' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+              }`}
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center text-white">
@@ -1223,7 +1221,7 @@ const fetchPendingSkills = async () => {
         </div>
 
         {isDeploying && deployStatus && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl"
@@ -1232,9 +1230,9 @@ const fetchPendingSkills = async () => {
               <h4 className="font-bold text-zinc-200">Deployment in Progress</h4>
               <span className="text-indigo-400 font-mono text-sm">{deployStatus.progress}%</span>
             </div>
-            
+
             <div className="w-full h-3 bg-zinc-800 rounded-full overflow-hidden mb-8">
-              <motion.div 
+              <motion.div
                 className="h-full bg-indigo-500"
                 initial={{ width: 0 }}
                 animate={{ width: `${deployStatus.progress}%` }}
@@ -1263,7 +1261,7 @@ const fetchPendingSkills = async () => {
         )}
 
         {deployStatus?.url && !isDeploying && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="bg-green-500/10 border border-green-500/20 rounded-2xl p-8 text-center"
@@ -1273,9 +1271,9 @@ const fetchPendingSkills = async () => {
             </div>
             <h3 className="text-xl font-bold text-green-400 mb-2">Success!</h3>
             <p className="text-zinc-400 mb-6">Your application is live and ready to use.</p>
-            <a 
-              href={deployStatus.url} 
-              target="_blank" 
+            <a
+              href={deployStatus.url}
+              target="_blank"
               className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold transition-all"
             >
               Open Application
@@ -1299,91 +1297,91 @@ const fetchPendingSkills = async () => {
         </div>
 
         <nav className="flex-1 px-4 space-y-1">
-          <button 
+          <button
             onClick={() => setActiveTab('terminal')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'terminal' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'terminal' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <TerminalIcon size={18} /> Terminal
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('agents')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'agents' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'agents' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Users size={18} /> Agents
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('history')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'history' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'history' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <HistoryIcon size={18} /> History
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('chat')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'chat' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'chat' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Users size={18} /> Chat History
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('skills')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'skills' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'skills' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Code size={18} /> Skills
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('files')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'files' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'files' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Folder size={18} /> Files
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('preview')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'preview' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'preview' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Globe size={18} /> Preview
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('timeline')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'timeline' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'timeline' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Activity size={18} /> Timeline
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('dashboard')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'dashboard' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'dashboard' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Layout size={18} /> Dashboard
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('search')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'search' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'search' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Search size={18} /> Global Search
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('orchestration')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'orchestration' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'orchestration' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Share2 size={18} /> Orchestration
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('roadmap')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'roadmap' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'roadmap' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <MapIcon size={18} /> Roadmap
           </button>
-          <button 
+          <button
             onClick={() => {
               setActiveTab('git');
               fetchGitStatus();
@@ -1393,7 +1391,7 @@ const fetchPendingSkills = async () => {
           >
             <GitBranch size={18} /> Git Source
           </button>
-          <button 
+          <button
             onClick={() => {
               setActiveTab('secrets');
               fetchSecrets();
@@ -1403,7 +1401,7 @@ const fetchPendingSkills = async () => {
           >
             <LockIcon size={18} /> Secrets Manager
           </button>
-          <button 
+          <button
             onClick={() => {
               setActiveTab('plugins');
               fetchPluginStore();
@@ -1413,14 +1411,14 @@ const fetchPendingSkills = async () => {
           >
             <Zap size={18} /> Plugin Store
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('mcp')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'mcp' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'mcp' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
           >
             <Zap size={18} /> MCP Protocol
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('settings')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === 'settings' ? 'bg-zinc-800 text-zinc-100 border border-zinc-700' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
             style={activeTab === 'settings' ? { color: config?.theme?.web?.primaryColor || '#6366f1', borderColor: (config?.theme?.web?.primaryColor || '#6366f1') + '33', backgroundColor: (config?.theme?.web?.primaryColor || '#6366f1') + '11' } : {}}
@@ -1445,7 +1443,7 @@ const fetchPendingSkills = async () => {
             <h2 className="text-sm font-semibold text-zinc-300 capitalize">{activeTab}</h2>
           </div>
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 hover:bg-zinc-900 rounded-lg text-zinc-400 transition-colors"
               title="Toggle Theme"
@@ -1458,7 +1456,7 @@ const fetchPendingSkills = async () => {
                 {deployStatus?.step || 'Deploying...'}
               </div>
             ) : (
-              <button 
+              <button
                 onClick={handleDeploy}
                 className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-lg border border-zinc-800 text-xs font-medium transition-colors"
               >
@@ -1467,7 +1465,7 @@ const fetchPendingSkills = async () => {
             )}
             {activeTab === 'agents' && (
               <>
-                <button 
+                <button
                   onClick={() => setIsCreatingAgent(true)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-colors shadow-lg"
                   style={{ backgroundColor: config?.theme?.web?.primaryColor || '#6366f1', boxShadow: `0 10px 15px -3px ${(config?.theme?.web?.primaryColor || '#6366f1')}33` }}
@@ -1481,7 +1479,7 @@ const fetchPendingSkills = async () => {
               </>
             )}
             {activeTab === 'skills' && (
-              <button 
+              <button
                 onClick={() => setIsCreatingSkill(true)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-colors shadow-lg"
                 style={{ backgroundColor: config?.theme?.web?.primaryColor || '#6366f1', boxShadow: `0 10px 15px -3px ${(config?.theme?.web?.primaryColor || '#6366f1')}33` }}
@@ -1489,7 +1487,7 @@ const fetchPendingSkills = async () => {
                 <Plus size={14} /> New Skill
               </button>
             )}
-            <button 
+            <button
               onClick={() => setIsSettingsOpen(true)}
               className="p-2 hover:bg-zinc-900 rounded-lg text-zinc-400 transition-colors"
             >
@@ -1501,7 +1499,7 @@ const fetchPendingSkills = async () => {
         <main className="flex-1 overflow-hidden relative">
           <AnimatePresence mode="wait">
             {activeTab === 'terminal' && (
-              <motion.div 
+              <motion.div
                 key="terminal"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1573,7 +1571,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'agents' && (
-              <motion.div 
+              <motion.div
                 key="agents"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1583,15 +1581,15 @@ const fetchPendingSkills = async () => {
                 <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                   <div className="relative w-full md:w-96">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                    <input 
-                      type="text" 
-                      placeholder="Search agents by name or description..." 
+                    <input
+                      type="text"
+                      placeholder="Search agents by name or description..."
                       value={agentSearchTerm}
                       onChange={(e) => setAgentSearchTerm(e.target.value)}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-indigo-500/50 transition-all"
                     />
                     {agentSearchTerm && (
-                      <button 
+                      <button
                         onClick={() => setAgentSearchTerm('')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
                       >
@@ -1602,14 +1600,14 @@ const fetchPendingSkills = async () => {
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Filter by Tag:</span>
                     <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1">
-                      <button 
+                      <button
                         onClick={() => setSelectedTag(null)}
                         className={`px-2 py-1 text-[10px] rounded-md transition-all ${!selectedTag ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`}
                       >
                         All
                       </button>
                       {allTags.map(tag => (
-                        <button 
+                        <button
                           key={tag}
                           onClick={() => setSelectedTag(tag)}
                           className={`px-2 py-1 text-[10px] rounded-md transition-all ${selectedTag === tag ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
@@ -1630,21 +1628,21 @@ const fetchPendingSkills = async () => {
                           <Users size={20} />
                         </div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
+                          <button
                             onClick={() => setEditingAgent(agent)}
                             className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300"
                             title="Edit"
                           >
                             <Settings size={14} />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleExportAgent(agent)}
                             className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300"
                             title="Export"
                           >
                             <FileJson size={14} />
                           </button>
-                          <button 
+                          <button
                             onClick={() => setConfirmDelete(agent.name)}
                             className="p-1.5 hover:bg-red-500/10 rounded-lg text-zinc-500 hover:text-red-500"
                             title="Delete"
@@ -1660,7 +1658,7 @@ const fetchPendingSkills = async () => {
                         ))}
                       </div>
                       <p className="text-xs text-zinc-500 line-clamp-2 mb-6 flex-1">{agent.description || 'No description provided.'}</p>
-                      <button 
+                      <button
                         onClick={() => handleRunAgent(agent.name)}
                         className="w-full flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-indigo-600 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white transition-all"
                       >
@@ -1679,7 +1677,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'files' && (
-              <motion.div 
+              <motion.div
                 key="files"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1692,22 +1690,22 @@ const fetchPendingSkills = async () => {
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Explorer</span>
                       <div className="flex items-center gap-1">
-                        <button 
-                          onClick={() => setIsCreatingFile(true)} 
+                        <button
+                          onClick={() => setIsCreatingFile(true)}
                           className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-zinc-300"
                           title="New File"
                         >
                           <Plus size={14} />
                         </button>
-                        <button 
-                          onClick={() => setIsCreatingDir(true)} 
+                        <button
+                          onClick={() => setIsCreatingDir(true)}
                           className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-zinc-300"
                           title="New Folder"
                         >
                           <Folder size={14} />
                         </button>
-                        <button 
-                          onClick={() => fetchFiles(currentPath)} 
+                        <button
+                          onClick={() => fetchFiles(currentPath)}
                           className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-zinc-300"
                           title="Refresh"
                         >
@@ -1715,10 +1713,10 @@ const fetchPendingSkills = async () => {
                         </button>
                       </div>
                     </div>
-                    
+
                     {/* Breadcrumbs */}
                     <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1">
-                      <button 
+                      <button
                         onClick={() => fetchFiles('.')}
                         className="text-[10px] text-zinc-500 hover:text-indigo-400 transition-colors whitespace-nowrap"
                       >
@@ -1727,7 +1725,7 @@ const fetchPendingSkills = async () => {
                       {currentPath !== '.' && currentPath.split('/').map((part, i, arr) => (
                         <Fragment key={i}>
                           <ChevronRight size={10} className="text-zinc-700 shrink-0" />
-                          <button 
+                          <button
                             onClick={() => fetchFiles(arr.slice(0, i + 1).join('/'))}
                             className={`text-[10px] whitespace-nowrap transition-colors ${i === arr.length - 1 ? 'text-indigo-400 font-bold' : 'text-zinc-500 hover:text-zinc-300'}`}
                           >
@@ -1739,7 +1737,7 @@ const fetchPendingSkills = async () => {
 
                     <div className="relative">
                       <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-600" />
-                      <input 
+                      <input
                         type="text"
                         placeholder="Search files..."
                         value={fileSearchTerm}
@@ -1757,7 +1755,7 @@ const fetchPendingSkills = async () => {
                             New {isCreatingDir ? 'Folder' : 'File'}
                           </span>
                         </div>
-                        <input 
+                        <input
                           autoFocus
                           type="text"
                           value={newItemName}
@@ -1774,13 +1772,13 @@ const fetchPendingSkills = async () => {
                           className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs focus:outline-none focus:border-indigo-500/50"
                         />
                         <div className="flex gap-2 mt-2">
-                          <button 
+                          <button
                             onClick={() => handleCreateItem(isCreatingDir)}
                             className="flex-1 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold rounded"
                           >
                             Create
                           </button>
-                          <button 
+                          <button
                             onClick={() => {
                               setIsCreatingFile(false);
                               setIsCreatingDir(false);
@@ -1794,7 +1792,7 @@ const fetchPendingSkills = async () => {
                       </div>
                     )}
                     {currentPath !== '.' && !fileSearchTerm && (
-                      <button 
+                      <button
                         onClick={() => fetchFiles(currentPath.split('/').slice(0, -1).join('/') || '.')}
                         className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-zinc-400 hover:bg-zinc-900 rounded-lg transition-colors"
                       >
@@ -1816,7 +1814,7 @@ const fetchPendingSkills = async () => {
                     <>
                       <div className="h-10 border-b border-zinc-800 bg-zinc-900/50 flex items-center overflow-x-auto no-scrollbar">
                         {openFiles.map(file => (
-                          <div 
+                          <div
                             key={file.path}
                             onClick={() => readFile(file.path)}
                             className={`h-full px-4 flex items-center gap-2 border-r border-zinc-800 cursor-pointer transition-all min-w-[120px] max-w-[200px] group ${activeFile === file.path ? 'bg-zinc-950 text-zinc-100' : 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'}`}
@@ -1824,7 +1822,7 @@ const fetchPendingSkills = async () => {
                             <FileCode size={14} className={activeFile === file.path ? 'text-indigo-400' : 'text-zinc-600'} />
                             <span className="text-xs font-medium truncate flex-1">{file.path.split('/').pop()}</span>
                             {file.isDirty && <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />}
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 closeFile(file.path);
@@ -1851,19 +1849,19 @@ const fetchPendingSkills = async () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] text-zinc-600 font-mono italic mr-2">Auto-saves every 2s</span>
-                          <button 
+                          <button
                             onClick={() => setShowEditorSearch(!showEditorSearch)}
                             className={`flex items-center gap-2 px-3 py-1 text-[10px] font-bold uppercase rounded transition-colors ${showEditorSearch ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
                           >
                             <Search size={12} /> {showEditorSearch ? 'Hide Search' : 'Search & Replace'}
                           </button>
-                          <button 
+                          <button
                             onClick={() => setShowDiff(!showDiff)}
                             className={`flex items-center gap-2 px-3 py-1 text-[10px] font-bold uppercase rounded transition-colors ${showDiff ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
                           >
                             <Layout size={12} /> {showDiff ? 'Hide Diff' : 'Show Diff'}
                           </button>
-                          <button 
+                          <button
                             onClick={saveFile}
                             disabled={isSaving}
                             className="flex items-center gap-2 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 text-white text-[10px] font-bold uppercase rounded transition-colors"
@@ -1878,7 +1876,7 @@ const fetchPendingSkills = async () => {
                             <div className="flex-1 flex items-center gap-2">
                               <div className="relative flex-1">
                                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-600" />
-                                <input 
+                                <input
                                   type="text"
                                   placeholder="Find..."
                                   value={editorSearchTerm}
@@ -1888,7 +1886,7 @@ const fetchPendingSkills = async () => {
                               </div>
                               <div className="relative flex-1">
                                 <Activity size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-600" />
-                                <input 
+                                <input
                                   type="text"
                                   placeholder="Replace with..."
                                   value={editorReplaceTerm}
@@ -1897,13 +1895,13 @@ const fetchPendingSkills = async () => {
                                 />
                               </div>
                             </div>
-                            <button 
+                            <button
                               onClick={handleReplace}
                               className="px-4 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase rounded transition-colors"
                             >
                               Replace All
                             </button>
-                            <button 
+                            <button
                               onClick={() => setShowEditorSearch(false)}
                               className="p-1 hover:bg-zinc-800 rounded text-zinc-500"
                             >
@@ -1941,19 +1939,21 @@ const fetchPendingSkills = async () => {
                             />
                           </div>
                         ) : (
-                        <CodeEditor 
-       filePath={activeFile || 'file.txt'} 
-       content={fileContent} 
-       theme={theme} 
-       onChange={(value) => {
-         const newContent = value || '';
-         setFileContent(newContent);
-         setHasUnsavedChanges(true);
-         setOpenFiles(prev => prev.map(f => f.path === activeFile ? { ...f, content: newContent, isDirty:
-      true } : f));
-      }}
-     onSave={handleCommit} 
-   />
+                          <CodeEditor
+                            filePath={activeFile || 'file.txt'}
+                            content={fileContent}
+                            theme={theme}
+                            onChange={(value) => {
+                              const newContent = value || '';
+                              setFileContent(newContent);
+                              setHasUnsavedChanges(true);
+                              setOpenFiles(prev => prev.map(f => f.path === activeFile ? {
+                                ...f, content: newContent, isDirty:
+                                  true
+                              } : f));
+                            }}
+                            onSave={handleCommit}
+                          />
                         )}
                       </div>
                     </>
@@ -1968,7 +1968,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'search' && (
-              <motion.div 
+              <motion.div
                 key="search"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1979,14 +1979,14 @@ const fetchPendingSkills = async () => {
                   <h3 className="text-xl font-bold text-zinc-100 mb-4">Global Project Search</h3>
                   <form onSubmit={handleGlobalSearch} className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="Search for text in all files..."
                       value={globalSearchTerm}
                       onChange={(e) => setGlobalSearchTerm(e.target.value)}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all"
                     />
-                    <button 
+                    <button
                       type="submit"
                       disabled={isSearching}
                       className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50"
@@ -1997,7 +1997,7 @@ const fetchPendingSkills = async () => {
                 </div>
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                   {searchResults.map((result, idx) => (
-                    <div 
+                    <div
                       key={idx}
                       onClick={() => readFile(result.filePath)}
                       className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl hover:border-zinc-700 cursor-pointer transition-all group"
@@ -2022,7 +2022,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'orchestration' && (
-              <motion.div 
+              <motion.div
                 key="orchestration"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2034,7 +2034,7 @@ const fetchPendingSkills = async () => {
                     <h3 className="text-xl font-bold text-zinc-100">Agent Orchestration</h3>
                     <p className="text-xs text-zinc-500">Visualize agent delegation and tool usage</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       setOrchestrationNodes([]);
                       setOrchestrationEdges([]);
@@ -2050,22 +2050,21 @@ const fetchPendingSkills = async () => {
                     <div className="absolute inset-0 p-12">
                       {/* Dynamic Nodes */}
                       {orchestrationNodes.map((node) => (
-                        <motion.div 
+                        <motion.div
                           key={node.id}
                           layoutId={node.id}
                           initial={{ opacity: 0, scale: 0 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          style={{ 
-                            position: 'absolute', 
-                            left: `${node.pos.x}%`, 
+                          style={{
+                            position: 'absolute',
+                            left: `${node.pos.x}%`,
                             top: `${node.pos.y}%`,
                             transform: 'translate(-50%, -50%)'
                           }}
-                          className={`w-28 h-28 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 shadow-2xl transition-all z-10 ${
-                            node.status === 'active' ? 'bg-indigo-600/20 border-indigo-500 shadow-indigo-500/20' : 
-                            node.status === 'error' ? 'bg-red-600/20 border-red-500 shadow-red-500/20' :
-                            'bg-zinc-800 border-zinc-700 shadow-black/50'
-                          }`}
+                          className={`w-28 h-28 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 shadow-2xl transition-all z-10 ${node.status === 'active' ? 'bg-indigo-600/20 border-indigo-500 shadow-indigo-500/20' :
+                              node.status === 'error' ? 'bg-red-600/20 border-red-500 shadow-red-500/20' :
+                                'bg-zinc-800 border-zinc-700 shadow-black/50'
+                            }`}
                         >
                           <div className={`p-2 rounded-lg ${node.status === 'active' ? 'text-indigo-400' : 'text-zinc-500'}`}>
                             {node.type === 'lead' ? <Share2 size={24} /> : <Code size={20} />}
@@ -2092,16 +2091,16 @@ const fetchPendingSkills = async () => {
                           const to = orchestrationNodes.find(n => n.id === edge.to);
                           if (!from || !to) return null;
                           return (
-                            <motion.line 
+                            <motion.line
                               key={i}
                               initial={{ pathLength: 0 }}
                               animate={{ pathLength: 1 }}
-                              x1={`${from.pos.x}%`} 
-                              y1={`${from.pos.y}%`} 
-                              x2={`${to.pos.x}%`} 
-                              y2={`${to.pos.y}%`} 
-                              stroke={edge.status === 'active' ? '#6366f1' : '#3f3f46'} 
-                              strokeWidth={edge.status === 'active' ? '2' : '1'} 
+                              x1={`${from.pos.x}%`}
+                              y1={`${from.pos.y}%`}
+                              x2={`${to.pos.x}%`}
+                              y2={`${to.pos.y}%`}
+                              stroke={edge.status === 'active' ? '#6366f1' : '#3f3f46'}
+                              strokeWidth={edge.status === 'active' ? '2' : '1'}
                               strokeDasharray={edge.status === 'active' ? '0' : '4 4'}
                               markerEnd="url(#arrowhead)"
                             />
@@ -2120,11 +2119,10 @@ const fetchPendingSkills = async () => {
                         {orchestrationLogs.map((log, i) => (
                           <div key={i} className="flex gap-3 animate-in fade-in slide-in-from-left duration-300">
                             <span className="text-zinc-600 shrink-0">[{log.time}]</span>
-                            <span className={`font-bold ${
-                              log.type === 'delegate' ? 'text-indigo-400' : 
-                              log.type === 'tool' ? 'text-yellow-400' : 
-                              'text-zinc-400'
-                            }`}>{log.type}</span>
+                            <span className={`font-bold ${log.type === 'delegate' ? 'text-indigo-400' :
+                                log.type === 'tool' ? 'text-yellow-400' :
+                                  'text-zinc-400'
+                              }`}>{log.type}</span>
                             <span className="text-zinc-300">{log.message}</span>
                           </div>
                         ))}
@@ -2157,7 +2155,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'timeline' && (
-              <motion.div 
+              <motion.div
                 key="timeline"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2169,7 +2167,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'roadmap' && (
-              <motion.div 
+              <motion.div
                 key="roadmap"
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -2178,7 +2176,7 @@ const fetchPendingSkills = async () => {
                 <div className="max-w-4xl mx-auto">
                   <h2 className="text-2xl font-bold mb-2">Business Roadmap</h2>
                   <p className="text-zinc-400 mb-8 text-sm">Strategic milestones and development progress</p>
-                  
+
                   <div className="space-y-12">
                     {[
                       { title: 'MVP Launch', date: 'Q1 2026', status: 'completed', desc: 'Initial release with core agent orchestration and terminal interface.' },
@@ -2203,7 +2201,7 @@ const fetchPendingSkills = async () => {
               </motion.div>
             )}
             {activeTab === 'dashboard' && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex-1 p-8 overflow-y-auto"
@@ -2231,7 +2229,7 @@ const fetchPendingSkills = async () => {
                     <div className="text-4xl font-bold">{skills.length}</div>
                   </div>
                 </div>
-                
+
                 <h3 className="text-lg font-bold mb-6">Agent Performance</h3>
                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
                   <table className="w-full text-left">
@@ -2267,7 +2265,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'deploy' && (
-              <motion.div 
+              <motion.div
                 key="deploy"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2279,7 +2277,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'preview' && (
-              <motion.div 
+              <motion.div
                 key="preview"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2291,7 +2289,7 @@ const fetchPendingSkills = async () => {
                     <Globe size={14} className="text-zinc-500" />
                     <span className="text-xs font-mono text-zinc-400">{window.location.origin}</span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       const iframe = document.getElementById('preview-iframe') as HTMLIFrameElement;
                       if (iframe) iframe.src = iframe.src;
@@ -2303,9 +2301,9 @@ const fetchPendingSkills = async () => {
                   </button>
                 </div>
                 <div className="flex-1 bg-white">
-                  <iframe 
+                  <iframe
                     id="preview-iframe"
-                    src={window.location.origin} 
+                    src={window.location.origin}
                     className="w-full h-full border-none"
                     title="App Preview"
                   />
@@ -2314,7 +2312,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'history' && (
-              <motion.div 
+              <motion.div
                 key="history"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2323,15 +2321,15 @@ const fetchPendingSkills = async () => {
               >
                 <div className="mb-6 relative w-full md:w-96">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                  <input 
-                    type="text" 
-                    placeholder="Search history..." 
+                  <input
+                    type="text"
+                    placeholder="Search history..."
                     value={historySearchTerm}
                     onChange={(e) => setHistorySearchTerm(e.target.value)}
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-indigo-500/50 transition-all"
                   />
                   {historySearchTerm && (
-                    <button 
+                    <button
                       onClick={() => setHistorySearchTerm('')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
                     >
@@ -2370,13 +2368,13 @@ const fetchPendingSkills = async () => {
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2">
-                                <button 
+                                <button
                                   onClick={() => setSelectedHistoryEntry(entry)}
                                   className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest hover:text-indigo-400"
                                 >
                                   View Output
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => setExpandedHistoryIndex(expandedHistoryIndex === i ? null : i)}
                                   className="text-zinc-500 hover:text-zinc-300"
                                 >
@@ -2427,7 +2425,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'chat' && (
-              <motion.div 
+              <motion.div
                 key="chat"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2436,7 +2434,7 @@ const fetchPendingSkills = async () => {
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-zinc-100">Full Conversation History</h3>
-                  <button 
+                  <button
                     onClick={fetchChatHistory}
                     className="p-2 hover:bg-zinc-900 rounded-lg text-zinc-400 transition-colors"
                     disabled={isChatLoading}
@@ -2454,13 +2452,12 @@ const fetchPendingSkills = async () => {
                   <div className="space-y-4">
                     {chatHistory.map((msg, i) => (
                       <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] p-4 rounded-2xl border ${
-                          msg.role === 'user' 
-                            ? 'bg-indigo-600/10 border-indigo-500/30 text-zinc-200' 
+                        <div className={`max-w-[80%] p-4 rounded-2xl border ${msg.role === 'user'
+                            ? 'bg-indigo-600/10 border-indigo-500/30 text-zinc-200'
                             : msg.role === 'system'
-                            ? 'bg-zinc-900/50 border-zinc-800 text-zinc-500 text-xs italic'
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-300'
-                        }`}>
+                              ? 'bg-zinc-900/50 border-zinc-800 text-zinc-500 text-xs italic'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                          }`}>
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">{msg.role}</span>
                           </div>
@@ -2498,7 +2495,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'secrets' && (
-              <motion.div 
+              <motion.div
                 key="secrets"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2518,7 +2515,7 @@ const fetchPendingSkills = async () => {
                       </div>
                       <div className="flex-1">
                         <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">{key}</div>
-                        <input 
+                        <input
                           type="password"
                           value={value}
                           onChange={(e) => setSecrets(prev => ({ ...prev, [key]: e.target.value }))}
@@ -2537,8 +2534,8 @@ const fetchPendingSkills = async () => {
                       </button>
                     </div>
                   ))}
-                  
-                  <button 
+
+                  <button
                     onClick={() => {
                       const key = prompt('Enter secret key (e.g. STRIPE_API_KEY):');
                       if (key) handleSaveSecret(key, '');
@@ -2552,7 +2549,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'plugins' && (
-              <motion.div 
+              <motion.div
                 key="plugins"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2585,7 +2582,7 @@ const fetchPendingSkills = async () => {
                       <p className="text-[11px] text-zinc-500 mb-4 line-clamp-2">{plugin.description}</p>
                       <div className="mt-auto pt-4 border-t border-zinc-800 flex items-center justify-between">
                         <span className="text-[10px] text-zinc-600 font-medium tracking-wide">@{plugin.author}</span>
-                        <button 
+                        <button
                           onClick={() => axios.post('/api/plugins/install', { url: plugin.url })}
                           className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold shadow-lg shadow-indigo-500/20 transition-all"
                         >
@@ -2599,7 +2596,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'git' && (
-              <motion.div 
+              <motion.div
                 key="git"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2642,7 +2639,7 @@ const fetchPendingSkills = async () => {
                         Bump
                       </button>
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         axios.post('/api/git/pull').then(() => fetchGitStatus());
                       }}
@@ -2651,7 +2648,7 @@ const fetchPendingSkills = async () => {
                     >
                       <ArrowDown size={14} /> Pull
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         axios.post('/api/git/push').then(() => fetchGitStatus());
                       }}
@@ -2660,7 +2657,7 @@ const fetchPendingSkills = async () => {
                     >
                       <ArrowUp size={14} /> Push
                     </button>
-                    <button 
+                    <button
                       onClick={fetchGitStatus}
                       className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-zinc-200 transition-all"
                       title="Refresh Status"
@@ -2676,7 +2673,7 @@ const fetchPendingSkills = async () => {
                     <div className="p-4 border-b border-zinc-800">
                       <div className="flex items-center justify-between mb-4">
                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Branches</span>
-                        <button 
+                        <button
                           onClick={() => {
                             const name = prompt('New branch name:');
                             if (name) {
@@ -2692,7 +2689,7 @@ const fetchPendingSkills = async () => {
                       </div>
                       <div className="space-y-1 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                         {gitBranches.map((branch: any, i: number) => (
-                          <button 
+                          <button
                             key={i}
                             onClick={() => handleCheckout(branch.name)}
                             className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium transition-all ${branch.isCurrent ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' : 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 border border-transparent'}`}
@@ -2712,7 +2709,7 @@ const fetchPendingSkills = async () => {
                       <div className="p-4 flex items-center justify-between">
                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Changes ({gitStatus.length})</span>
                         {gitStatus.length > 0 && (
-                          <button 
+                          <button
                             onClick={async () => {
                               const msg = window.prompt('Commit message:');
                               if (msg) {
@@ -2728,17 +2725,16 @@ const fetchPendingSkills = async () => {
                       </div>
                       <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar text-left">
                         {gitStatus.map((item: any, i: number) => (
-                          <button 
+                          <button
                             key={i}
                             onClick={() => fetchGitDiff(item.filePath)}
                             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-zinc-800/50 transition-all group border border-transparent hover:border-zinc-700/50"
                           >
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-sm ${
-                              item.code.includes('M') ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 
-                              item.code.includes('A') ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 
-                              item.code.includes('D') ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 
-                              'bg-zinc-700/10 text-zinc-400 border border-zinc-700/20'
-                            }`}>
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-sm ${item.code.includes('M') ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
+                                item.code.includes('A') ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                                  item.code.includes('D') ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' :
+                                    'bg-zinc-700/10 text-zinc-400 border border-zinc-700/20'
+                              }`}>
                               {item.code.trim() || '?'}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -2759,13 +2755,13 @@ const fetchPendingSkills = async () => {
                     </div>
 
                     <div className="mt-auto p-4 bg-zinc-950/50 border-t border-zinc-800">
-                      <textarea 
+                      <textarea
                         placeholder="Commit message..."
                         value={commitMessage}
                         onChange={(e) => setCommitMessage(e.target.value)}
                         className="w-full h-24 bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 resize-none mb-3"
                       />
-                      <button 
+                      <button
                         onClick={handleCommit}
                         disabled={isCommitting || !commitMessage || gitStatus.length === 0}
                         className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
@@ -2782,14 +2778,13 @@ const fetchPendingSkills = async () => {
                       <div className="flex-1 overflow-auto p-6 font-mono text-[11px] custom-scrollbar text-left">
                         <pre className="whitespace-pre-wrap leading-relaxed">
                           {gitDiff.split('\n').map((line: string, i: number) => (
-                            <div 
-                              key={i} 
-                              className={`px-2 py-0.5 rounded-sm ${
-                                line.startsWith('+') && !line.startsWith('+++') ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500' :
-                                line.startsWith('-') && !line.startsWith('---') ? 'bg-rose-500/10 text-rose-400 border-l-2 border-rose-500' :
-                                line.startsWith('@@') ? 'bg-indigo-500/5 text-indigo-400/60 my-2 italic' :
-                                'text-zinc-500 opacity-80'
-                              }`}
+                            <div
+                              key={i}
+                              className={`px-2 py-0.5 rounded-sm ${line.startsWith('+') && !line.startsWith('+++') ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500' :
+                                  line.startsWith('-') && !line.startsWith('---') ? 'bg-rose-500/10 text-rose-400 border-l-2 border-rose-500' :
+                                    line.startsWith('@@') ? 'bg-indigo-500/5 text-indigo-400/60 my-2 italic' :
+                                      'text-zinc-500 opacity-80'
+                                }`}
                             >
                               {line}
                             </div>
@@ -2811,7 +2806,7 @@ const fetchPendingSkills = async () => {
             )}
 
             {activeTab === 'mcp' && (
-              <motion.div 
+              <motion.div
                 key="mcp"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2824,7 +2819,7 @@ const fetchPendingSkills = async () => {
                     <p className="text-xs text-zinc-500">Manage external tools and server connections</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button 
+                    <button
                       onClick={() => {
                         fetchConfig();
                         fetchMcpData();
@@ -2834,7 +2829,7 @@ const fetchPendingSkills = async () => {
                     >
                       <RefreshCw size={18} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         setIsMcpCatalogOpen(true);
                         fetchMcpCatalog();
@@ -2843,7 +2838,7 @@ const fetchPendingSkills = async () => {
                     >
                       <Globe size={14} /> Browse Catalog
                     </button>
-                    <button 
+                    <button
                       onClick={() => setIsAddMCPModalOpen(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-500/20"
                     >
@@ -2894,23 +2889,23 @@ const fetchPendingSkills = async () => {
                                 <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Active</span>
                               </div>
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button 
+                                <button
                                   onClick={() => {
                                     setEditingMCP(server);
                                     setIsEditMCPModalOpen(true);
                                   }}
-                                  className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300" 
+                                  className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300"
                                   title="Configure"
                                 >
                                   <Settings size={14} />
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => {
                                     if (confirm(`Delete MCP server ${server.name}?`)) {
                                       axios.delete(`/api/mcp/servers/${server.name}`).then(() => fetchConfig());
                                     }
                                   }}
-                                  className="p-2 hover:bg-red-500/10 rounded-lg text-zinc-500 hover:text-red-500" 
+                                  className="p-2 hover:bg-red-500/10 rounded-lg text-zinc-500 hover:text-red-500"
                                   title="Delete"
                                 >
                                   <Trash2 size={14} />
@@ -2941,106 +2936,106 @@ const fetchPendingSkills = async () => {
               </motion.div>
             )}
 
-             {activeTab === 'skills' && (
-                <motion.div
-                  key="skills"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="h-full p-6 overflow-y-auto"
-                >
-                  {pendingSkills.length > 0 && (
-                    <div className="mb-8 border border-indigo-500/30 rounded-2xl p-6 bg-indigo-950/10">
-                      <h3 className="text-sm font-bold text-indigo-400 mb-4 uppercase tracking-widest">
-                        Pending Skill Suggestions
-                      </h3>
-                      {pendingSkills.map((skill, i) => (
-                        <div key={i} className="flex items-center justify-between bg-zinc-900 p-4 rounded-xl mb-2 border border-zinc-800">
-                          <div>
-                            <p className="text-zinc-200 font-bold">{skill.name}</p>
-                            <p className="text-zinc-500 text-xs">{skill.description}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={async () => {
-                                await axios.post('/api/skills', skill);
-                                await axios.delete(`/api/skills/pending/${skill.name}`);
-                                fetchSkills();
-                                fetchPendingSkills();
-                              }}
-                              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-bold transition-all"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={async () => {
-                                await axios.delete(`/api/skills/pending/${skill.name}`);
-                                fetchPendingSkills();
-                              }}
-                              className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded text-xs font-bold transition-all"
-                            >
-                              Skip
-                            </button>
-                          </div>
+            {activeTab === 'skills' && (
+              <motion.div
+                key="skills"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="h-full p-6 overflow-y-auto"
+              >
+                {pendingSkills.length > 0 && (
+                  <div className="mb-8 border border-indigo-500/30 rounded-2xl p-6 bg-indigo-950/10">
+                    <h3 className="text-sm font-bold text-indigo-400 mb-4 uppercase tracking-widest">
+                      Pending Skill Suggestions
+                    </h3>
+                    {pendingSkills.map((skill, i) => (
+                      <div key={i} className="flex items-center justify-between bg-zinc-900 p-4 rounded-xl mb-2 border border-zinc-800">
+                        <div>
+                          <p className="text-zinc-200 font-bold">{skill.name}</p>
+                          <p className="text-zinc-500 text-xs">{skill.description}</p>
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {skills.map((skill) => (
-                      <div key={skill.name} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col hover:border-zinc-700 transition-all group">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="p-2 bg-indigo-600/10 rounded-xl text-indigo-500">
-                            <Code size={20} />
-                          </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => setConfirmDeleteSkill(skill.name)}
-                              className="p-1.5 hover:bg-red-500/10 rounded-lg text-zinc-500 hover:text-red-500"
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={async () => {
+                              await axios.post('/api/skills', skill);
+                              await axios.delete(`/api/skills/pending/${skill.name}`);
+                              fetchSkills();
+                              fetchPendingSkills();
+                            }}
+                            className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-bold transition-all"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={async () => {
+                              await axios.delete(`/api/skills/pending/${skill.name}`);
+                              fetchPendingSkills();
+                            }}
+                            className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded text-xs font-bold transition-all"
+                          >
+                            Skip
+                          </button>
                         </div>
-                        <h3 className="font-bold text-zinc-100 mb-1">{skill.name}</h3>
-                        <p className="text-xs text-zinc-500 line-clamp-2 mb-6 flex-1">{skill.description || 'No description provided.'}</p>
-                        <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 mb-4">
-                          <div className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1">Prompt Preview</div>
-                          <p className="text-[10px] text-zinc-500 line-clamp-3 italic">"{skill.prompt}"</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setActiveTab('terminal');
-                            setTimeout(() => {
-                              if (xtermRef.current) {
-                                const cmd = `mimocode skill run ${skill.name} "your input here"`;
-                                xtermRef.current.write(cmd);
-                              }
-                            }, 100);
-                          }}
-                          className="w-full flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-indigo-600 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white transition-all"
-                        >
-                          <Play size={12} /> Use Skill
-                        </button>
                       </div>
                     ))}
-
-                    {skills.length === 0 && pendingSkills.length === 0 && (
-                      <div className="col-span-full h-64 flex flex-col items-center justify-center text-zinc-600">
-                        <Code size={48} className="opacity-20 mb-4" />
-                        <p className="text-sm font-medium">No skills found</p>
-                      </div>
-                    )}
                   </div>
-                </motion.div>
-              )}
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {skills.map((skill) => (
+                    <div key={skill.name} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col hover:border-zinc-700 transition-all group">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="p-2 bg-indigo-600/10 rounded-xl text-indigo-500">
+                          <Code size={20} />
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => setConfirmDeleteSkill(skill.name)}
+                            className="p-1.5 hover:bg-red-500/10 rounded-lg text-zinc-500 hover:text-red-500"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      <h3 className="font-bold text-zinc-100 mb-1">{skill.name}</h3>
+                      <p className="text-xs text-zinc-500 line-clamp-2 mb-6 flex-1">{skill.description || 'No description provided.'}</p>
+                      <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 mb-4">
+                        <div className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1">Prompt Preview</div>
+                        <p className="text-[10px] text-zinc-500 line-clamp-3 italic">"{skill.prompt}"</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setActiveTab('terminal');
+                          setTimeout(() => {
+                            if (xtermRef.current) {
+                              const cmd = `mimocode skill run ${skill.name} "your input here"`;
+                              xtermRef.current.write(cmd);
+                            }
+                          }, 100);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2 bg-zinc-800 hover:bg-indigo-600 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white transition-all"
+                      >
+                        <Play size={12} /> Use Skill
+                      </button>
+                    </div>
+                  ))}
+
+                  {skills.length === 0 && pendingSkills.length === 0 && (
+                    <div className="col-span-full h-64 flex flex-col items-center justify-center text-zinc-600">
+                      <Code size={48} className="opacity-20 mb-4" />
+                      <p className="text-sm font-medium">No skills found</p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
 
 
 
             {activeTab === 'settings' && (
-              <motion.div 
+              <motion.div
                 key="settings"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -3069,8 +3064,8 @@ const fetchPendingSkills = async () => {
                           <div>
                             <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Primary Theme Color</label>
                             <div className="flex items-center gap-3">
-                              <input 
-                                type="color" 
+                              <input
+                                type="color"
                                 value={config?.theme?.web?.primaryColor || '#6366f1'}
                                 onChange={(e) => {
                                   const newConfig = { ...config, theme: { ...config.theme, web: { ...config.theme?.web, primaryColor: e.target.value } } };
@@ -3083,7 +3078,7 @@ const fetchPendingSkills = async () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
                         <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                           <Activity size={14} /> System Parameters
@@ -3094,7 +3089,7 @@ const fetchPendingSkills = async () => {
                               <div className="text-sm font-bold text-zinc-200">Auto-Healing</div>
                               <div className="text-[10px] text-zinc-500">Automatically attempt to fix errors</div>
                             </div>
-                            <button 
+                            <button
                               onClick={() => {
                                 const newConfig = { ...config, autoHealing: !config.autoHealing };
                                 axios.post('/api/config', newConfig).then(() => setConfig(newConfig));
@@ -3109,7 +3104,7 @@ const fetchPendingSkills = async () => {
                               <div className="text-sm font-bold text-zinc-200">Performance Mode</div>
                               <div className="text-[10px] text-zinc-500">Optimize for speed over detail</div>
                             </div>
-                            <button 
+                            <button
                               onClick={() => {
                                 const newConfig = { ...config, performanceMode: !config.performanceMode };
                                 axios.post('/api/config', newConfig).then(() => setConfig(newConfig));
@@ -3131,8 +3126,8 @@ const fetchPendingSkills = async () => {
                         <div className="space-y-4">
                           <div>
                             <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Max Concurrent Agents</label>
-                            <input 
-                              type="number" 
+                            <input
+                              type="number"
                               min="1"
                               max="10"
                               value={config?.maxConcurrentAgents || 3}
@@ -3151,7 +3146,7 @@ const fetchPendingSkills = async () => {
                           <Trash2 size={14} /> Danger Zone
                         </h4>
                         <div className="space-y-4">
-                          <button 
+                          <button
                             onClick={() => {
                               if (confirm('Are you sure you want to reset all configurations? This cannot be undone.')) {
                                 axios.post('/api/config/reset').then(() => window.location.reload());
@@ -3176,14 +3171,14 @@ const fetchPendingSkills = async () => {
       <AnimatePresence>
         {editingAgent && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setEditingAgent(null)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3199,33 +3194,33 @@ const fetchPendingSkills = async () => {
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Description</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={editingAgent.description}
-                    onChange={(e) => setEditingAgent({...editingAgent, description: e.target.value})}
+                    onChange={(e) => setEditingAgent({ ...editingAgent, description: e.target.value })}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">System Instructions</label>
-                  <textarea 
+                  <textarea
                     rows={8}
                     value={editingAgent.systemInstruction}
-                    onChange={(e) => setEditingAgent({...editingAgent, systemInstruction: e.target.value})}
+                    onChange={(e) => setEditingAgent({ ...editingAgent, systemInstruction: e.target.value })}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50 resize-none"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Tags (comma separated)</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={editingAgent.tags?.join(', ')}
-                    onChange={(e) => setEditingAgent({...editingAgent, tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)})}
+                    onChange={(e) => setEditingAgent({ ...editingAgent, tags: e.target.value.split(',').map(t => t.trim()).filter(t => t) })}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
                   />
                 </div>
                 <div className="pt-4">
-                  <button 
+                  <button
                     onClick={() => setEditingAgent(null)}
                     className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-indigo-500/20"
                   >
@@ -3239,14 +3234,14 @@ const fetchPendingSkills = async () => {
 
         {isAddMCPModalOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddMCPModalOpen(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3264,8 +3259,8 @@ const fetchPendingSkills = async () => {
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Server Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="e.g. filesystem-server"
                     value={newMCP.name}
                     onChange={(e) => setNewMCP({ ...newMCP, name: e.target.value })}
@@ -3274,7 +3269,7 @@ const fetchPendingSkills = async () => {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Connection Type</label>
-                  <select 
+                  <select
                     value={newMCP.type}
                     onChange={(e) => setNewMCP({ ...newMCP, type: e.target.value as any })}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
@@ -3287,8 +3282,8 @@ const fetchPendingSkills = async () => {
                   <>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Command</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="e.g. npx"
                         value={newMCP.command}
                         onChange={(e) => setNewMCP({ ...newMCP, command: e.target.value })}
@@ -3297,8 +3292,8 @@ const fetchPendingSkills = async () => {
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Arguments (comma separated)</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="e.g. -y, @mcp/server-fs"
                         value={newMCP.args.join(', ')}
                         onChange={(e) => setNewMCP({ ...newMCP, args: e.target.value.split(',').map(s => s.trim()) })}
@@ -3309,8 +3304,8 @@ const fetchPendingSkills = async () => {
                 ) : (
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Server URL</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="e.g. http://localhost:3001"
                       value={newMCP.url}
                       onChange={(e) => setNewMCP({ ...newMCP, url: e.target.value })}
@@ -3320,13 +3315,13 @@ const fetchPendingSkills = async () => {
                 )}
               </div>
               <div className="p-6 border-t border-zinc-800 bg-zinc-950/50 flex gap-3">
-                <button 
+                <button
                   onClick={() => setIsAddMCPModalOpen(false)}
                   className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-semibold text-zinc-300 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleAddMCP}
                   disabled={!newMCP.name || (newMCP.type === 'stdio' ? !newMCP.command : !newMCP.url)}
                   className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-50"
@@ -3340,14 +3335,14 @@ const fetchPendingSkills = async () => {
 
         {isEditMCPModalOpen && editingMCP && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsEditMCPModalOpen(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3365,8 +3360,8 @@ const fetchPendingSkills = async () => {
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Server Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     disabled
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-500 cursor-not-allowed"
                     value={editingMCP.name}
@@ -3374,7 +3369,7 @@ const fetchPendingSkills = async () => {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Connection Type</label>
-                  <select 
+                  <select
                     value={editingMCP.type}
                     onChange={(e) => setEditingMCP({ ...editingMCP, type: e.target.value as any })}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
@@ -3387,8 +3382,8 @@ const fetchPendingSkills = async () => {
                   <>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Command</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="e.g. npx"
                         value={editingMCP.command}
                         onChange={(e) => setEditingMCP({ ...editingMCP, command: e.target.value })}
@@ -3397,8 +3392,8 @@ const fetchPendingSkills = async () => {
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Arguments (comma separated)</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="e.g. -y, @mcp/server-fs"
                         value={editingMCP.args.join(', ')}
                         onChange={(e) => setEditingMCP({ ...editingMCP, args: e.target.value.split(',').map(s => s.trim()) })}
@@ -3409,8 +3404,8 @@ const fetchPendingSkills = async () => {
                 ) : (
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Server URL</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="e.g. http://localhost:3001"
                       value={editingMCP.url}
                       onChange={(e) => setEditingMCP({ ...editingMCP, url: e.target.value })}
@@ -3420,13 +3415,13 @@ const fetchPendingSkills = async () => {
                 )}
               </div>
               <div className="p-6 border-t border-zinc-800 bg-zinc-950/50 flex gap-3">
-                <button 
+                <button
                   onClick={() => setIsEditMCPModalOpen(false)}
                   className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-semibold text-zinc-300 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleUpdateMCP}
                   className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-indigo-500/20"
                 >
@@ -3439,14 +3434,14 @@ const fetchPendingSkills = async () => {
 
         {isCreatingAgent && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsCreatingAgent(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3462,9 +3457,9 @@ const fetchPendingSkills = async () => {
                     <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Agent Name</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 font-mono">@</span>
-                      <input 
+                      <input
                         required
-                        type="text" 
+                        type="text"
                         placeholder="architect"
                         value={newAgent.name}
                         onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value.replace(/[^a-z0-9_-]/gi, '') })}
@@ -3474,8 +3469,8 @@ const fetchPendingSkills = async () => {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Role Title</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="Senior Architect"
                       value={newAgent.role}
                       onChange={(e) => setNewAgent({ ...newAgent, role: e.target.value })}
@@ -3485,8 +3480,8 @@ const fetchPendingSkills = async () => {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Short Description</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Briefly describe what this agent specializes in..."
                     value={newAgent.description}
                     onChange={(e) => setNewAgent({ ...newAgent, description: e.target.value })}
@@ -3495,7 +3490,7 @@ const fetchPendingSkills = async () => {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">System Instructions (The "Brain")</label>
-                  <textarea 
+                  <textarea
                     required
                     rows={6}
                     placeholder="Define how this agent should behave, what tools it should prioritize, and its overall persona..."
@@ -3505,14 +3500,14 @@ const fetchPendingSkills = async () => {
                   />
                 </div>
                 <div className="bg-zinc-900/50 border-t border-zinc-800 pt-6 flex gap-3">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setIsCreatingAgent(false)}
                     className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-semibold text-zinc-300 transition-colors"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     disabled={!newAgent.name || !newAgent.systemInstruction}
                     className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-indigo-500/20"
@@ -3527,14 +3522,14 @@ const fetchPendingSkills = async () => {
 
         {isCreatingSkill && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsCreatingSkill(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3547,39 +3542,39 @@ const fetchPendingSkills = async () => {
               <form onSubmit={handleCreateSkill} className="p-6 space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Skill Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
                     value={newSkill.name}
-                    onChange={(e) => setNewSkill({...newSkill, name: e.target.value})}
+                    onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
                     placeholder="e.g., refactor-ts"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Description</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
                     value={newSkill.description}
-                    onChange={(e) => setNewSkill({...newSkill, description: e.target.value})}
+                    onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })}
                     placeholder="Briefly describe what this skill does"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Skill Prompt</label>
-                  <textarea 
+                  <textarea
                     rows={6}
                     required
                     value={newSkill.prompt}
-                    onChange={(e) => setNewSkill({...newSkill, prompt: e.target.value})}
+                    onChange={(e) => setNewSkill({ ...newSkill, prompt: e.target.value })}
                     placeholder="Define how the AI should behave when using this skill..."
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50 resize-none"
                   />
                 </div>
                 <div className="pt-4">
-                  <button 
+                  <button
                     type="submit"
                     className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg"
                   >
@@ -3593,14 +3588,14 @@ const fetchPendingSkills = async () => {
 
         {confirmDeleteSkill && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setConfirmDeleteSkill(null)}
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3612,13 +3607,13 @@ const fetchPendingSkills = async () => {
               <h3 className="font-bold text-zinc-100 mb-2">Delete Skill?</h3>
               <p className="text-xs text-zinc-500 mb-6">Are you sure you want to delete the skill <span className="text-zinc-300 font-bold">"{confirmDeleteSkill}"</span>? This action cannot be undone.</p>
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={() => setConfirmDeleteSkill(null)}
                   className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl transition-all"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={() => handleDeleteSkill(confirmDeleteSkill)}
                   className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all"
                 >
@@ -3630,14 +3625,14 @@ const fetchPendingSkills = async () => {
         )}
         {confirmDelete && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setConfirmDelete(null)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -3649,13 +3644,13 @@ const fetchPendingSkills = async () => {
               <h3 className="font-bold text-zinc-100 mb-2">Delete Agent?</h3>
               <p className="text-xs text-zinc-500 mb-6">Are you sure you want to delete <span className="text-zinc-300 font-bold">@{confirmDelete}</span>? This action cannot be undone.</p>
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={() => setConfirmDelete(null)}
                   className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-semibold text-zinc-300 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={() => handleDeleteAgent(confirmDelete)}
                   className="flex-1 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
                 >
@@ -3668,14 +3663,14 @@ const fetchPendingSkills = async () => {
 
         {isMcpCatalogOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMcpCatalogOpen(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3690,7 +3685,7 @@ const fetchPendingSkills = async () => {
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {mcpCatalog.map(item => (
                   <div key={item.name} className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 hover:border-indigo-500/30 transition-all group">
@@ -3699,7 +3694,7 @@ const fetchPendingSkills = async () => {
                         <Globe size={20} />
                       </div>
                       <div className="flex items-center gap-2">
-                        <button 
+                        <button
                           onClick={() => {
                             axios.post('/api/mcp/clone', { name: item.name, repoUrl: `https://github.com/modelcontextprotocol/servers/tree/main/src/${item.name}` })
                               .then(() => alert(`Successfully cloned ${item.name} to mcp-servers/${item.name}`));
@@ -3708,7 +3703,7 @@ const fetchPendingSkills = async () => {
                         >
                           <Download size={12} /> Clone Source
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             const newMcp = { name: item.name, type: item.type, command: item.command, args: item.args };
                             const updatedMcpServers = [...(config.mcpServers || []), newMcp];
@@ -3738,14 +3733,14 @@ const fetchPendingSkills = async () => {
 
         {isHealConfirmOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => !isSystemActionLoading && setIsHealConfirmOpen(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -3757,14 +3752,14 @@ const fetchPendingSkills = async () => {
               <h3 className="font-bold text-zinc-100 mb-2">Repair System?</h3>
               <p className="text-xs text-zinc-500 mb-6">This will run a system-wide auto-repair which may modify multiple files. Are you sure you want to proceed?</p>
               <div className="flex gap-3">
-                <button 
+                <button
                   disabled={isSystemActionLoading}
                   onClick={() => setIsHealConfirmOpen(false)}
                   className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-semibold text-zinc-300 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   disabled={isSystemActionLoading}
                   onClick={handleHealSystem}
                   className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-50 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
@@ -3778,14 +3773,14 @@ const fetchPendingSkills = async () => {
 
         {isImproveConfirmOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => !isSystemActionLoading && setIsImproveConfirmOpen(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -3797,14 +3792,14 @@ const fetchPendingSkills = async () => {
               <h3 className="font-bold text-zinc-100 mb-2">Improve Codebase?</h3>
               <p className="text-xs text-zinc-500 mb-6">This will apply AI-driven improvements across your codebase. This is a major change. Are you sure?</p>
               <div className="flex gap-3">
-                <button 
+                <button
                   disabled={isSystemActionLoading}
                   onClick={() => setIsImproveConfirmOpen(false)}
                   className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-semibold text-zinc-300 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   disabled={isSystemActionLoading}
                   onClick={handleImproveSystem}
                   className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
@@ -3818,14 +3813,14 @@ const fetchPendingSkills = async () => {
 
         {isRestoreConfirmOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => !isSystemActionLoading && setIsRestoreConfirmOpen(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -3837,14 +3832,14 @@ const fetchPendingSkills = async () => {
               <h3 className="font-bold text-zinc-100 mb-2">Restore Latest?</h3>
               <p className="text-xs text-zinc-500 mb-6">This will revert your codebase to the latest checkpoint. Any changes since then will be lost. Are you sure?</p>
               <div className="flex gap-3">
-                <button 
+                <button
                   disabled={isSystemActionLoading}
                   onClick={() => setIsRestoreConfirmOpen(false)}
                   className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-semibold text-zinc-300 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   disabled={isSystemActionLoading}
                   onClick={handleRestoreLatest}
                   className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
@@ -3858,14 +3853,14 @@ const fetchPendingSkills = async () => {
 
         {isRagClearConfirmOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => !isSystemActionLoading && setIsRagClearConfirmOpen(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -3877,14 +3872,14 @@ const fetchPendingSkills = async () => {
               <h3 className="font-bold text-zinc-100 mb-2">Clear RAG Index?</h3>
               <p className="text-xs text-zinc-500 mb-6">This will delete all indexed data from your RAG system. You will need to re-index to use it again. Are you sure?</p>
               <div className="flex gap-3">
-                <button 
+                <button
                   disabled={isSystemActionLoading}
                   onClick={() => setIsRagClearConfirmOpen(false)}
                   className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-semibold text-zinc-300 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   disabled={isSystemActionLoading}
                   onClick={handleRagClear}
                   className="flex-1 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-red-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
@@ -3898,14 +3893,14 @@ const fetchPendingSkills = async () => {
 
         {selectedHistoryEntry && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedHistoryEntry(null)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3959,14 +3954,14 @@ const fetchPendingSkills = async () => {
         )}
         {isSettingsOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSettingsOpen(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -3981,7 +3976,7 @@ const fetchPendingSkills = async () => {
                 </div>
                 <button onClick={() => setIsSettingsOpen(false)} className="text-zinc-500 hover:text-zinc-300"><X size={20} /></button>
               </div>
-              
+
               <div className="p-6 overflow-y-auto space-y-8">
                 {/* AI Backend Section */}
                 <section>
@@ -3991,7 +3986,7 @@ const fetchPendingSkills = async () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Runtime</label>
-                      <select 
+                      <select
                         value={config?.runtime}
                         onChange={(e) => updateConfig({ runtime: e.target.value as any })}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
@@ -4005,7 +4000,7 @@ const fetchPendingSkills = async () => {
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Model</label>
                       <div className="relative">
-                        <select 
+                        <select
                           value={config?.model}
                           onChange={(e) => updateConfig({ model: e.target.value })}
                           className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50 appearance-none"
@@ -4018,8 +4013,8 @@ const fetchPendingSkills = async () => {
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Endpoint URL</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={config?.endpoint}
                         onChange={(e) => updateConfig({ endpoint: e.target.value })}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
@@ -4039,7 +4034,7 @@ const fetchPendingSkills = async () => {
                         <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Temperature</label>
                         <span className="text-[10px] font-mono text-indigo-400">{config?.temperature || 0.7}</span>
                       </div>
-                      <input 
+                      <input
                         type="range" min="0" max="1" step="0.1"
                         value={config?.temperature || 0.7}
                         onChange={(e) => updateConfig({ temperature: parseFloat(e.target.value) })}
@@ -4051,7 +4046,7 @@ const fetchPendingSkills = async () => {
                         <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Top P</label>
                         <span className="text-[10px] font-mono text-indigo-400">{config?.topP || 0.9}</span>
                       </div>
-                      <input 
+                      <input
                         type="range" min="0" max="1" step="0.05"
                         value={config?.topP || 0.9}
                         onChange={(e) => updateConfig({ topP: parseFloat(e.target.value) })}
@@ -4063,7 +4058,7 @@ const fetchPendingSkills = async () => {
                         <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Top K</label>
                         <span className="text-[10px] font-mono text-indigo-400">{config?.topK || 40}</span>
                       </div>
-                      <input 
+                      <input
                         type="range" min="1" max="100" step="1"
                         value={config?.topK || 40}
                         onChange={(e) => updateConfig({ topK: parseInt(e.target.value) })}
@@ -4081,16 +4076,16 @@ const fetchPendingSkills = async () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Mimocode API Key</label>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
                         placeholder="Enter your Mimocode API key..."
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
                       />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Search API Key (SerpApi/Google)</label>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
                         placeholder="Enter your Search API key..."
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500/50"
                       />
@@ -4119,7 +4114,7 @@ const fetchPendingSkills = async () => {
                         <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Active</span>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setIsAddMCPModalOpen(true)}
                       className="w-full py-3 border border-dashed border-zinc-800 rounded-xl text-xs text-zinc-500 hover:border-zinc-700 hover:text-zinc-400 transition-all flex items-center justify-center gap-2"
                     >
@@ -4140,15 +4135,15 @@ const fetchPendingSkills = async () => {
                         <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Primary Color</label>
                         <div className="flex gap-2 flex-wrap">
                           {['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'].map(color => (
-                            <button 
+                            <button
                               key={color}
                               onClick={() => updateConfig({ theme: { ...config.theme, web: { ...config.theme.web, primaryColor: color } } })}
                               className={`w-6 h-6 rounded-full border-2 ${config?.theme?.web?.primaryColor === color ? 'border-white' : 'border-transparent'}`}
                               style={{ backgroundColor: color }}
                             />
                           ))}
-                          <input 
-                            type="color" 
+                          <input
+                            type="color"
                             value={config?.theme?.web?.primaryColor || '#6366f1'}
                             onChange={(e) => updateConfig({ theme: { ...config.theme, web: { ...config.theme.web, primaryColor: e.target.value } } })}
                             className="w-6 h-6 rounded-full bg-transparent border-none p-0 overflow-hidden cursor-pointer"
@@ -4157,7 +4152,7 @@ const fetchPendingSkills = async () => {
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Font Family</label>
-                        <select 
+                        <select
                           value={config?.theme?.web?.fontFamily}
                           onChange={(e) => updateConfig({ theme: { ...config.theme, web: { ...config.theme.web, fontFamily: e.target.value } } })}
                           className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-indigo-500/50"
@@ -4174,8 +4169,8 @@ const fetchPendingSkills = async () => {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Font Size</label>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             value={config?.theme?.terminal?.fontSize}
                             onChange={(e) => updateConfig({ theme: { ...config.theme, terminal: { ...config.theme.terminal, fontSize: parseInt(e.target.value) } } })}
                             className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-indigo-500/50"
@@ -4183,8 +4178,8 @@ const fetchPendingSkills = async () => {
                         </div>
                         <div>
                           <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Cursor Color</label>
-                          <input 
-                            type="color" 
+                          <input
+                            type="color"
                             value={config?.theme?.terminal?.cursor || '#6366f1'}
                             onChange={(e) => updateConfig({ theme: { ...config.theme, terminal: { ...config.theme.terminal, cursor: e.target.value } } })}
                             className="w-full h-8 bg-zinc-950 border border-zinc-800 rounded-xl px-2 py-1 cursor-pointer"
@@ -4201,25 +4196,25 @@ const fetchPendingSkills = async () => {
                     <AlertCircle size={12} /> Critical Actions
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <button 
+                    <button
                       onClick={() => setIsHealConfirmOpen(true)}
                       className="flex items-center justify-center gap-2 py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-[10px] font-bold text-red-500 uppercase tracking-widest transition-all"
                     >
                       <Zap size={12} /> Auto-Repair System
                     </button>
-                    <button 
+                    <button
                       onClick={() => setIsRagClearConfirmOpen(true)}
                       className="flex items-center justify-center gap-2 py-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-[10px] font-bold text-zinc-400 uppercase tracking-widest transition-all"
                     >
                       <Trash2 size={12} /> Clear RAG Index
                     </button>
-                    <button 
+                    <button
                       onClick={handleVSCodeSetup}
                       className="flex items-center justify-center gap-2 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-[10px] font-bold text-blue-500 uppercase tracking-widest transition-all"
                     >
                       <Code size={12} /> Setup VS Code Integration
                     </button>
-                    <button 
+                    <button
                       onClick={() => setIsRestoreConfirmOpen(true)}
                       className="flex items-center justify-center gap-2 py-2.5 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 rounded-xl text-[10px] font-bold text-yellow-500 uppercase tracking-widest transition-all"
                     >
@@ -4230,7 +4225,7 @@ const fetchPendingSkills = async () => {
               </div>
 
               <div className="p-6 border-t border-zinc-800 bg-zinc-950/50 flex justify-end">
-                <button 
+                <button
                   onClick={() => setIsSettingsOpen(false)}
                   className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-semibold text-white transition-colors shadow-lg shadow-indigo-500/20"
                 >
@@ -4246,14 +4241,14 @@ const fetchPendingSkills = async () => {
         {contextMenu && (
           <>
             <div className="fixed inset-0 z-[60]" onClick={() => setContextMenu(null)} />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               style={{ top: contextMenu.y, left: contextMenu.x }}
               className="fixed z-[70] w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-1.5 backdrop-blur-md"
             >
-              <button 
+              <button
                 onClick={() => {
                   setRenameValue(contextMenu.item.name);
                   setIsRenaming(contextMenu.item.path);
@@ -4263,7 +4258,7 @@ const fetchPendingSkills = async () => {
               >
                 <Code size={14} /> Rename
               </button>
-              <button 
+              <button
                 onClick={() => {
                   deleteFile(contextMenu.item.path);
                   setContextMenu(null);
