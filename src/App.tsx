@@ -916,11 +916,18 @@ const fetchPendingSkills = async () => {
     if (!commitMessage) return;
     setIsCommitting(true);
     try {
+      // Stage all changes (including package.json)
+      await axios.post('/api/git/add', { files: '.' });
+      // Perform commit and push
       await axios.post('/api/git/commit', { message: commitMessage });
+      await axios.post('/api/git/push');
+      
       setCommitMessage('');
       fetchGitStatus();
       setGitDiff(null);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e); 
+    }
     finally { setIsCommitting(false); }
   };
 
