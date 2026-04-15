@@ -35,14 +35,14 @@ import { reportEvent } from './events';
 
 marked.setOptions({
   renderer: new TerminalRenderer({
-    codespan: chalk.hex('#facc15'), // Yellow-400
-    code: chalk.hex('#e2e8f0'),     // Slate-200
-    heading: chalk.bold.hex('#6366f1'),
-    link: chalk.cyan,
-    strong: chalk.bold,
-    em: chalk.italic,
-    listitem: (text: string) => chalk.dim(' • ') + text + '\n',
-    hr: () => chalk.dim('─'.repeat(process.stdout.columns || 40)) + '\n'
+    codespan: chalk.hex('#eab308'),     // Yellow-500
+    code: chalk.bgHex('#18181b').hex('#f8fafc'), // Subtle dark background
+    heading: chalk.bold.hex('#6366f1'), // Indigo-500
+    link: chalk.cyan.underline,
+    strong: chalk.bold.white,
+    em: chalk.italic.gray,
+    listitem: (text: string) => chalk.dim(' ◦ ') + text + '\n',
+    hr: () => chalk.dim('\n' + '─'.repeat(process.stdout.columns || 40) + '\n')
   }) as any
 });
 
@@ -852,11 +852,20 @@ async function startGeminiChat(config: Config, initialInput?: string) {
       effectiveInput = `Execute procedure for: ${fullInput}. Context: ${skillResult.response}`;
     }
 
+// Helper pour les spinners d'agents
+function createAgentSpinner(agentName: string) {
+  return ora({
+    text: chalk.bold.cyan(`@${agentName}`) + chalk.dim(' travaille...'),
+    spinner: 'dots'
+  }).start();
+}
+
+// Dans processInput...
     const startTime = Date.now();
-    const spinner = ora({ text: chalk.dim('Thinking... (esc to cancel, 0s)'), spinner: 'dots' }).start();
+    const spinner = createAgentSpinner(effectiveInput.includes('@') ? effectiveInput.split(' ')[0].slice(1) : 'Mimocode');
     const timerInterval = setInterval(() => {
       const seconds = Math.floor((Date.now() - startTime) / 1000);
-      spinner.text = chalk.dim(`Thinking... (esc to cancel, ${seconds}s)`);
+      spinner.text = chalk.bold.cyan(effectiveInput.includes('@') ? effectiveInput.split(' ')[0] : '@Mimocode') + chalk.dim(` travaille... (${seconds}s)`);
     }, 1000);
 
     try {
@@ -892,7 +901,7 @@ async function startGeminiChat(config: Config, initialInput?: string) {
   rl.on('line', handleInput);
   process.stdin.on('keypress', (str, key) => {
     if (key && key.name === 'escape' && isProcessing) abortController.abort();
-    if (key && key.name === 'tab' && key.shift) { (rl as any).line = '/improve '; (rl as any)._refreshLine(); }
+    if (key && key.name === 'tab' && key.shift) { (rl as any).line = '/plan '; (rl as any)._refreshLine(); }
     if (key && key.name === 'up' && historyIndex > 0) {
       historyIndex--;
       (rl as any).line = messageHistory[historyIndex];

@@ -46,7 +46,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { motion, AnimatePresence } from 'framer-motion';
 import Editor from '@monaco-editor/react';
 import ReactDiffViewer, { DiffMethod } from 'react-diff-viewer-continued';
-
+import { CodeEditor } from './components/CodeEditor';
 interface Agent {
   name: string;
   description: string;
@@ -1941,28 +1941,19 @@ const fetchPendingSkills = async () => {
                             />
                           </div>
                         ) : (
-                          <Editor
-                            height="100%"
-                            theme={theme === 'dark' ? 'vs-dark' : 'light'}
-                            path={activeFile || 'file.txt'}
-                            defaultLanguage="typescript"
-                            value={fileContent}
-                            onChange={(value) => {
-                              const newContent = value || '';
-                              setFileContent(newContent);
-                              setHasUnsavedChanges(true);
-                              // Update openFiles state
-                              setOpenFiles(prev => prev.map(f => f.path === activeFile ? { ...f, content: newContent, isDirty: true } : f));
-                            }}
-                            options={{
-                              minimap: { enabled: true },
-                              fontSize: 13,
-                              fontFamily: 'JetBrains Mono, monospace',
-                              scrollBeyondLastLine: false,
-                              automaticLayout: true,
-                              padding: { top: 20, bottom: 20 }
-                            }}
-                          />
+                        <CodeEditor 
+       filePath={activeFile || 'file.txt'} 
+       content={fileContent} 
+       theme={theme} 
+       onChange={(value) => {
+         const newContent = value || '';
+         setFileContent(newContent);
+         setHasUnsavedChanges(true);
+         setOpenFiles(prev => prev.map(f => f.path === activeFile ? { ...f, content: newContent, isDirty:
+      true } : f));
+      }}
+     onSave={handleCommit} 
+   />
                         )}
                       </div>
                     </>

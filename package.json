@@ -1,7 +1,7 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "0.37.5",
+  "version": "0.38.5",
   "type": "module",
   "bin": {
     "mimocode": "./bin/mimocode.js"
