@@ -47,7 +47,7 @@ marked.setOptions({
 });
 
 // ============================================
-// GEMINI-STYLE INTERFACE STATE & COMPONENTS
+// STYLE INTERFACE STATE & COMPONENTS
 // ============================================
 
 let currentWorkspace = process.cwd();
@@ -782,16 +782,18 @@ async function startGeminiChat(config: Config, initialInput?: string) {
 
   const drawStyledPrompt = () => {
     if (isProcessing) return;
-    const rows = process.stdout.rows || 24;
     const cols = process.stdout.columns || 80;
     const separator = chalk.yellow('─'.repeat(cols));
-    const helpText = chalk.dim('auto-accept edits   Shift+Tab to plan');
+    
+    // Raccourcir le chemin pour l'affichage
+    const dir = currentWorkspace.split('/').slice(-2).join('/');
+    const promptPrefix = `${chalk.dim('[')}${chalk.blue(dir)}${chalk.dim(']')}`;
     
     process.stdout.write(`\n\n\n`);
     process.stdout.write(`\x1b[3A`);
     process.stdout.write(`\x1b[0J`);
     
-    process.stdout.write(`${helpText}\n${separator}\n${chalk.bold.hex('#6366f1')('> ')}`);
+    process.stdout.write(`${separator}\n${promptPrefix} ${chalk.bold.hex('#6366f1')('> ')}`);
     rl.setPrompt('');
   };
 
@@ -822,6 +824,9 @@ async function startGeminiChat(config: Config, initialInput?: string) {
     if (!fullInput) { drawStyledPrompt(); return; }
 
     process.stdout.write(`\x1b[2A\x1b[0J`); 
+
+    // Affiche votre message proprement avant traitement
+    process.stdout.write(`${chalk.bold.hex('#6366f1')('> ')} ${fullInput}\n`);
 
     isProcessing = true;
     abortController = new AbortController();
@@ -878,7 +883,7 @@ function createAgentSpinner(agentName: string) {
       
       clearInterval(timerInterval);
       spinner.stop();
-      console.log('\n' + await marked.parse(response));
+      process.stdout.write(chalk.hex('#6366f1')('✦ ') + await marked.parse(response));
       messages.push({ role: 'user', content: fullInput });
       messages.push({ role: 'assistant', content: response });
       await saveMessage(sessionId, 'user', fullInput);
