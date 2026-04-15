@@ -1,6 +1,6 @@
 {
   "name": "mimocode",
-  "version": "0.38.6",
+  "version": "0.38.7",
   "description": "Mimocode - Autonomous AI Engineer - Code, fix, deploy autonomously",
   "type": "commonjs",
   "main": "dist/cli/index.js",
