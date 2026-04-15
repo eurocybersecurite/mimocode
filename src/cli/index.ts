@@ -35,9 +35,9 @@ import { reportEvent } from './events';
 
 marked.setOptions({
   renderer: new TerminalRenderer({
-    codespan: chalk.hex('#eab308'),     // Yellow-500
-    code: chalk.bgHex('#18181b').hex('#f8fafc'), // Subtle dark background
-    heading: chalk.bold.hex('#6366f1'), // Indigo-500
+    codespan: chalk.hex('#eab308'),
+    code: chalk.bgHex('#18181b').hex('#f8fafc'),
+    heading: chalk.bold.hex('#6366f1'),
     link: chalk.cyan.underline,
     strong: chalk.bold.white,
     em: chalk.italic.gray,
@@ -47,7 +47,7 @@ marked.setOptions({
 });
 
 // ============================================
-// STYLE INTERFACE STATE & COMPONENTS
+// GEMINI-STYLE INTERFACE STATE & COMPONENTS
 // ============================================
 
 let currentWorkspace = process.cwd();
@@ -142,7 +142,7 @@ function displaySuggestions(suggestions: Suggestion[]) {
   console.log('');
 }
 
-function renderGeminiHeader(config: Config) {
+function renderMimocodeHeader(config: Config) {
   const version = 'v0.36.4';
   const totalMem = os.totalmem() / (1024 * 1024 * 1024);
   const freeMem = os.freemem() / (1024 * 1024 * 1024);
@@ -344,7 +344,7 @@ async function handleSlashCommand(input: string, config: Config, agents: Agent[]
 
   switch (command) {
     case 'help':
-      console.log(chalk.bold.hex('#6366f1')('\nMimocode CLI Help\n'));
+      console.log(chalk.bold.hex('#6366f1')('\n📚 Mimocode - Available Commands\n'));
       const categories = [...new Set(slashCommands.map(c => c.category))];
       categories.forEach(cat => {
         console.log(chalk.bold.white(`${cat}:`));
@@ -766,7 +766,7 @@ async function startGeminiChat(config: Config, initialInput?: string) {
   const skills = await loadSkills(config);
   const sessionId = await getOrCreateSession(currentWorkspace);
   let messages: Message[] = await getSessionMessages(sessionId);
-  renderGeminiHeader(config);
+  renderMimocodeHeader(config);
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -785,7 +785,6 @@ async function startGeminiChat(config: Config, initialInput?: string) {
     const cols = process.stdout.columns || 80;
     const separator = chalk.yellow('─'.repeat(cols));
     
-    // Raccourcir le chemin pour l'affichage
     const dir = currentWorkspace.split('/').slice(-2).join('/');
     const promptPrefix = `${chalk.dim('[')}${chalk.blue(dir)}${chalk.dim(']')}`;
     
@@ -799,6 +798,13 @@ async function startGeminiChat(config: Config, initialInput?: string) {
 
   const handleInput = async (input: string) => {
     if (isProcessing) return;
+    
+    if (input.endsWith('\\')) {
+      multiLineBuffer += input.slice(0, -1) + '\n';
+      drawStyledPrompt();
+      return;
+    }
+    
     pasteBuffer.push(input);
     if (pasteTimeout) clearTimeout(pasteTimeout);
     pasteTimeout = setTimeout(async () => {
@@ -825,7 +831,6 @@ async function startGeminiChat(config: Config, initialInput?: string) {
 
     process.stdout.write(`\x1b[2A\x1b[0J`); 
 
-    // Affiche votre message proprement avant traitement
     process.stdout.write(`${chalk.bold.hex('#6366f1')('> ')} ${fullInput}\n`);
 
     isProcessing = true;
@@ -857,20 +862,15 @@ async function startGeminiChat(config: Config, initialInput?: string) {
       effectiveInput = `Execute procedure for: ${fullInput}. Context: ${skillResult.response}`;
     }
 
-// Helper pour les spinners d'agents
-function createAgentSpinner(agentName: string) {
-  return ora({
-    text: chalk.bold.cyan(`@${agentName}`) + chalk.dim(' travaille...'),
-    spinner: 'dots'
-  }).start();
-}
-
-// Dans processInput...
     const startTime = Date.now();
-    const spinner = createAgentSpinner(effectiveInput.includes('@') ? effectiveInput.split(' ')[0].slice(1) : 'Mimocode');
+    const spinner = ora({
+      text: chalk.bold.cyan('Mimocode') + chalk.dim(' thinking...'),
+      spinner: 'dots12'
+    }).start();
+    
     const timerInterval = setInterval(() => {
       const seconds = Math.floor((Date.now() - startTime) / 1000);
-      spinner.text = chalk.bold.cyan(effectiveInput.includes('@') ? effectiveInput.split(' ')[0] : '@Mimocode') + chalk.dim(` travaille... (${seconds}s)`);
+      spinner.text = chalk.bold.cyan('Mimocode') + chalk.dim(` thinking... (${seconds}s)`);
     }, 1000);
 
     try {
@@ -904,16 +904,50 @@ function createAgentSpinner(agentName: string) {
   };
 
   rl.on('line', handleInput);
+  
   process.stdin.on('keypress', (str, key) => {
-    if (key && key.name === 'escape' && isProcessing) abortController.abort();
-    if (key && key.name === 'tab' && key.shift) { (rl as any).line = '/plan '; (rl as any)._refreshLine(); }
-    if (key && key.name === 'up' && historyIndex > 0) {
+    if (!key) return;
+    
+    if (key.ctrl && key.name === 'c') {
+      console.log(chalk.yellow('\n👋 Goodbye!'));
+      process.exit(0);
+    }
+    
+    if (key.ctrl && key.name === 'l') {
+      console.clear();
+      renderMimocodeHeader(config);
+      drawStyledPrompt();
+      return;
+    }
+    
+    if (key.name === 'escape' && isProcessing) {
+      abortController.abort();
+      console.log(chalk.yellow('\n⏹️  Operation cancelled by user\n'));
+      isProcessing = false;
+      drawStyledPrompt();
+      return;
+    }
+    
+    if (key.name === 'tab') {
+      const line = (rl as any).line;
+      const suggestions = getSuggestions(line, agents, skills);
+      if (suggestions.length > 0) {
+        const suggestion = suggestions[0];
+        (rl as any).line = suggestion.value + ' ';
+        (rl as any).cursor = (rl as any).line.length;
+        (rl as any)._refreshLine();
+      }
+      return;
+    }
+    
+    if (key.name === 'up' && historyIndex > 0) {
       historyIndex--;
       (rl as any).line = messageHistory[historyIndex];
       (rl as any).cursor = (rl as any).line.length;
       (rl as any)._refreshLine();
     }
-    if (key && key.name === 'down') {
+    
+    if (key.name === 'down') {
       if (historyIndex < messageHistory.length - 1) {
         historyIndex++;
         (rl as any).line = messageHistory[historyIndex];

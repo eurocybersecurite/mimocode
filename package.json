@@ -1,17 +1,45 @@
 {
-  "name": "react-example",
-  "private": true,
+  "name": "mimocode",
   "version": "0.38.6",
-  "type": "module",
+  "description": "Mimocode - Autonomous AI Engineer - Code, fix, deploy autonomously",
+  "type": "commonjs",
+  "main": "dist/cli/index.js",
   "bin": {
     "mimocode": "./bin/mimocode.js"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eurocybersecurite/mimocode.git"
+  },
+  "homepage": "https://github.com/eurocybersecurite/mimocode#readme",
+  "bugs": {
+    "url": "https://github.com/eurocybersecurite/mimocode/issues"
+  },
+  "keywords": [
+    "ai",
+    "cli",
+    "llm",
+    "ollama",
+    "agent",
+    "mcp",
+    "rag",
+    "autonomous",
+    "code-assistant",
+    "mimocode"
+  ],
+  "author": "eurocybersecurite",
+  "license": "MIT",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
+    "build:cli": "tsc src/cli/index.ts --outDir dist/cli --esModuleInterop --target ES2022 --module CommonJS --skipLibCheck",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build:cli"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -65,10 +93,19 @@
     "@types/marked-terminal": "^6.1.1",
     "@types/node": "^22.14.0",
     "@types/node-notifier": "^8.0.5",
+    "@types/pg": "^8.11.10",
+    "@types/sqlite3": "^3.1.11",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
-  }
+    "typescript": "~5.8.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "README.md"
+  ]
 }

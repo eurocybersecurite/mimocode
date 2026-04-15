@@ -1,18 +1,14 @@
 #!/usr/bin/env node
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// CommonJS version - pas d'import
+const { spawn } = require('child_process');
+const path = require('path');
 
-const cliPath = join(__dirname, '../src/cli/index.ts');
-
-const child = spawn('npx', ['tsx', cliPath, ...process.argv.slice(2)], {
-  stdio: 'inherit',
-  shell: true
-});
-
-child.on('exit', (code) => {
-  process.exit(code || 0);
-});
+// Lancer la CLI
+try {
+  require('../dist/cli/index.js');
+} catch (e) {
+  console.error('Error loading Mimocode:', e.message);
+  console.error('Try running: npm run build:cli');
+  process.exit(1);
+}

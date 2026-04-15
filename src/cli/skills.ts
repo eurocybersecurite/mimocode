@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { Config } from './config';
 import { callLLM, Message } from './llm';
+import chalk from 'chalk';
 
 export interface Skill {
   name: string;

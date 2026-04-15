@@ -5,9 +5,7 @@ import axios from 'axios';
 import { exec, execSync, spawn } from 'child_process';
 import { promisify } from 'util';
 import * as rg from 'vscode-ripgrep';
-import { createRequire } from 'module';
 
-const require = createRequire(import.meta.url);
 const execAsync = promisify(exec);
 const rgPath = (rg as any).rgPath || (rg as any).default?.rgPath;
 

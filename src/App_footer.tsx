@@ -1,5 +1,0 @@
-        </AnimatePresence>
-      </main>
-    </div>
-  );
-}
