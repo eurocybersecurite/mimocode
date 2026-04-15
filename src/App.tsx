@@ -925,12 +925,13 @@ export default function App() {
       setCommitMessage('');
       fetchGitStatus();
       setGitDiff(null);
-    } catch (e) {
-      console.error(e);
+      alert('Commit et Push réussis !');
+    } catch (e: any) { 
+      alert('Erreur lors du commit/push : ' + e.message);
+      console.error(e); 
     }
     finally { setIsCommitting(false); }
   };
-
   const handleCreateSkill = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -2639,25 +2640,28 @@ export default function App() {
                         Bump
                       </button>
                     </div>
-                    <button
+                    <button 
                       onClick={() => {
-                        axios.post('/api/git/pull').then(() => fetchGitStatus());
+                        axios.post('/api/git/pull')
+                          .then(() => { fetchGitStatus(); alert('Pull réussi !'); })
+                          .catch((err) => alert('Erreur lors du pull : ' + err.message));
                       }}
                       className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-lg border border-zinc-800 text-xs font-medium transition-colors"
                       title="Pull changes"
                     >
                       <ArrowDown size={14} /> Pull
                     </button>
-                    <button
+                    <button 
                       onClick={() => {
-                        axios.post('/api/git/push').then(() => fetchGitStatus());
+                        axios.post('/api/git/push')
+                          .then(() => { fetchGitStatus(); alert('Push réussi !'); })
+                          .catch((err) => alert('Erreur lors du push : ' + err.message));
                       }}
                       className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-lg border border-zinc-800 text-xs font-medium transition-colors"
                       title="Push changes"
                     >
                       <ArrowUp size={14} /> Push
-                    </button>
-                    <button
+                    </button>                    <button
                       onClick={fetchGitStatus}
                       className="p-2 hover:bg-zinc-800 rounded-xl text-zinc-400 hover:text-zinc-200 transition-all"
                       title="Refresh Status"
