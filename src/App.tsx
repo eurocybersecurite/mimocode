@@ -2625,6 +2625,25 @@ const fetchPendingSkills = async () => {
                         <GitBranch size={14} /> Initialize Repository
                       </button>
                     )}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg p-1">
+                        <select id="versionBump" className="bg-transparent text-xs text-zinc-400 focus:outline-none">
+                          <option value="patch">Patch</option>
+                          <option value="minor">Minor</option>
+                          <option value="major">Major</option>
+                        </select>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const type = (document.getElementById('versionBump') as HTMLSelectElement).value;
+                          await axios.post('/api/git/version/bump', { type });
+                          fetchGitStatus();
+                        }}
+                        className="text-[10px] text-indigo-400 hover:text-indigo-300 underline"
+                      >
+                        Bump Version
+                      </button>
+                    </div>
                     <button 
                       onClick={() => {
                         axios.post('/api/git/pull').then(() => fetchGitStatus());

@@ -132,6 +132,25 @@ async function startServer() {
     }
   });
 
+  app.post('/api/git/version/bump', async (req, res) => {
+    const { type } = req.body; // 'patch', 'minor', 'major'
+    try {
+      const pkgPath = path.join(PROJECT_ROOT, 'package.json');
+      const pkg = await fs.readJson(pkgPath);
+      let [major, minor, patch] = pkg.version.split('.').map(Number);
+      
+      if (type === 'major') major++;
+      else if (type === 'minor') minor++;
+      else patch++;
+      
+      pkg.version = `${major}.${minor}.${patch}`;
+      await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+      res.json({ success: true, version: pkg.version });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Git Endpoints
   app.get('/api/git/status', async (req, res) => {
     try {
