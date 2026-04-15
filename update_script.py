@@ -1,0 +1,62 @@
+import re
+
+with open('src/cli/index.ts', 'r') as f:
+    content = f.read()
+
+# Pattern pour capturer tout le bloc de Orchestration jusqu'à rl.prompt()
+pattern = r'// 2\. Use Orchestrator[\s\S]+?rl\.prompt\(\);'
+
+replacement = """// 2. Use Orchestrator
+    const startTime = Date.now();
+    const spinner = ora({ text: chalk.dim('Thinking...'), spinner: 'dots' }).start();
+    try {
+      // Report start of processing
+      await reportEvent('chat_start', { input: effectiveInput });
+
+      const response = await processUserInput(config, effectiveInput, async (name, args, result, error) => {
+        spinner.stop();
+        displayToolCall(name, args, result, error);
+        spinner.start();
+      }, abortController.signal);
+      
+      spinner.stop();
+      
+      const duration = Date.now() - startTime;
+      if (duration > 5000) {
+        try {
+          const notifier = (await import('node-notifier')).default;
+          notifier.notify({
+            title: 'Mimocode Task Complete',
+            message: `Task finished in ${(duration / 1000).toFixed(1)}s`
+          });
+        } catch (e) {}
+      }
+      
+      // Simple, direct output matching this interface
+      console.log('\\n' + await marked.parse(response));
+      
+      // Update history
+      messages.push({ role: 'user', content: fullInput });
+      messages.push({ role: 'assistant', content: response });
+      await saveMessage(sessionId, 'user', fullInput);
+      await saveMessage(sessionId, 'assistant', response);
+
+      // Report end of processing
+      await reportEvent('chat_end', { response });
+
+    } catch (e: any) {
+      spinner.stop();
+      if (e.message === 'Operation aborted by user') {
+        console.log(chalk.yellow('\\n\\nOperation cancelled.'));
+      } else {
+        spinner.fail(chalk.red(`Error: ${e.message}`));
+      }
+    } finally {
+      isProcessing = false;
+      rl.prompt();
+    }"""
+
+new_content = re.sub(pattern, replacement, content)
+
+with open('src/cli/index.ts', 'w') as f:
+    f.write(new_content)

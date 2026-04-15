@@ -1,0 +1,5 @@
+{
+  "name": "mimocode CLI",
+  "description": "A 100% local AI development assistant with MCP, Subagents, Auto-repair, and a powerful Web UI.",
+  "requestFramePermissions": []
+}

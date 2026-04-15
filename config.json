@@ -1,0 +1,8 @@
+{
+  "servers": [
+    {
+      "name": "sqlite_mcp",
+      "path": "./mcp-servers/sqlite"
+    }
+  ]
+}

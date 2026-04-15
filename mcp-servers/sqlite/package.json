@@ -1,0 +1,9 @@
+{
+  "name": "sqlite",
+  "version": "1.0.0",
+  "description": "Cloned from https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}

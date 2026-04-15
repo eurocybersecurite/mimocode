@@ -1,0 +1,40 @@
+        </AnimatePresence>
+        {/* Context Menu */}
+        <AnimatePresence>
+          {contextMenu && (
+            <>
+              <div className="fixed inset-0 z-[60]" onClick={() => setContextMenu(null)} />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                style={{ top: contextMenu.y, left: contextMenu.x }}
+                className="fixed z-[70] w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-1.5 backdrop-blur-md"
+              >
+                <button
+                  onClick={() => {
+                    setRenameValue(contextMenu.item.name);
+                    setIsRenaming(contextMenu.item.path);
+                    setContextMenu(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors"
+                >
+                  <Code size={14} /> Rename
+                </button>
+                <button
+                  onClick={() => {
+                    deleteFile(contextMenu.item.path);
+                    setContextMenu(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}

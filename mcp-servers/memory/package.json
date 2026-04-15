@@ -1,0 +1,9 @@
+{
+  "name": "memory",
+  "version": "1.0.0",
+  "description": "Cloned from https://github.com/modelcontextprotocol/servers/tree/main/src/memory",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}
