@@ -2574,22 +2574,24 @@ const fetchPendingSkills = async () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {pluginStore.map(plugin => (
-                    <div key={plugin.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex flex-col hover:border-indigo-500/30 transition-all group">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-400">
-                          <Zap size={24} />
+                    <div key={plugin.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col hover:border-zinc-700 transition-all hover:shadow-2xl hover:shadow-indigo-500/5 group">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-10 h-10 bg-indigo-600/10 border border-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 group-hover:scale-105 transition-transform">
+                          <Zap size={20} />
                         </div>
-                        <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{plugin.version}</div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[9px] font-bold text-zinc-500 bg-zinc-950 px-2 py-0.5 rounded-full border border-zinc-800 uppercase tracking-widest">{plugin.version}</span>
+                        </div>
                       </div>
-                      <h4 className="text-lg font-bold text-zinc-100 mb-1">{plugin.name}</h4>
-                      <p className="text-xs text-zinc-500 mb-6 flex-1">{plugin.description}</p>
-                      <div className="flex items-center justify-between mt-auto">
-                        <div className="text-[10px] text-zinc-600">by <span className="text-zinc-400">{plugin.author}</span></div>
+                      <h4 className="text-sm font-bold text-zinc-100 mb-1">{plugin.name}</h4>
+                      <p className="text-[11px] text-zinc-500 mb-4 line-clamp-2">{plugin.description}</p>
+                      <div className="mt-auto pt-4 border-t border-zinc-800 flex items-center justify-between">
+                        <span className="text-[10px] text-zinc-600 font-medium tracking-wide">@{plugin.author}</span>
                         <button 
                           onClick={() => axios.post('/api/plugins/install', { url: plugin.url })}
-                          className="px-4 py-2 bg-zinc-800 hover:bg-indigo-600 text-zinc-300 hover:text-white rounded-xl text-[10px] font-bold transition-all"
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold shadow-lg shadow-indigo-500/20 transition-all"
                         >
-                          Install Plugin
+                          Install
                         </button>
                       </div>
                     </div>
@@ -2625,23 +2627,21 @@ const fetchPendingSkills = async () => {
                         <GitBranch size={14} /> Initialize Repository
                       </button>
                     )}
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg p-1">
-                        <select id="versionBump" className="bg-transparent text-xs text-zinc-400 focus:outline-none">
-                          <option value="patch">Patch</option>
-                          <option value="minor">Minor</option>
-                          <option value="major">Major</option>
-                        </select>
-                      </div>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 rounded-lg border border-zinc-800">
+                      <select id="versionBump" className="bg-transparent text-[10px] text-zinc-400 focus:outline-none cursor-pointer">
+                        <option value="patch">Patch</option>
+                        <option value="minor">Minor</option>
+                        <option value="major">Major</option>
+                      </select>
                       <button
                         onClick={async () => {
                           const type = (document.getElementById('versionBump') as HTMLSelectElement).value;
                           await axios.post('/api/git/version/bump', { type });
                           fetchGitStatus();
                         }}
-                        className="text-[10px] text-indigo-400 hover:text-indigo-300 underline"
+                        className="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded shadow-sm transition-colors"
                       >
-                        Bump Version
+                        Bump
                       </button>
                     </div>
                     <button 
