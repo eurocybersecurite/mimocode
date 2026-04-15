@@ -3054,17 +3054,23 @@ const fetchPendingSkills = async () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="h-full p-6 overflow-y-auto"
+                className="h-full p-8 overflow-y-auto"
               >
                 <div className="max-w-4xl mx-auto space-y-8">
-                  <div>
-                    <h3 className="text-2xl font-bold text-zinc-100 mb-2">Settings</h3>
-                    <p className="text-sm text-zinc-500">Configure your Mimocode environment and preferences</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-2xl font-bold text-zinc-100 mb-2">Settings</h3>
+                      <p className="text-sm text-zinc-500">Configure your Mimocode environment and preferences</p>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-lg">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Version</span>
+                      <span className="text-xs font-mono text-indigo-400">v0.37.1</span>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-6">
-                      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4">
+                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
                         <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                           <Zap size={14} /> Appearance
                         </h4>
@@ -3079,15 +3085,15 @@ const fetchPendingSkills = async () => {
                                   const newConfig = { ...config, theme: { ...config.theme, web: { ...config.theme?.web, primaryColor: e.target.value } } };
                                   axios.post('/api/config', newConfig).then(() => setConfig(newConfig));
                                 }}
-                                className="w-10 h-10 bg-transparent border-none cursor-pointer"
+                                className="w-8 h-8 bg-transparent border-none cursor-pointer rounded"
                               />
-                              <span className="text-sm font-mono text-zinc-400">{config?.theme?.web?.primaryColor || '#6366f1'}</span>
+                              <span className="text-xs font-mono text-zinc-400">{config?.theme?.web?.primaryColor || '#6366f1'}</span>
                             </div>
                           </div>
                         </div>
                       </div>
-
-                      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4">
+                      
+                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
                         <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                           <Activity size={14} /> System Parameters
                         </h4>
