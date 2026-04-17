@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "mimocode: chat",
+      "type": "shell",
+      "command": "npx tsx src/cli/index.ts chat",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "mimocode: heal",
+      "type": "shell",
+      "command": "npx tsx src/cli/index.ts heal --fix",
+      "problemMatcher": []
+    },
+    {
+      "label": "mimocode: improve",
+      "type": "shell",
+      "command": "npx tsx src/cli/index.ts improve --apply",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -53,7 +53,7 @@ export function SkillsPage({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full p-6 overflow-y-auto"
+      className="p-6"
     >
       <div className="mb-6 relative w-full md:w-96">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />

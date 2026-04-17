@@ -27,7 +27,7 @@ export function SearchPage({
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
-      className="flex-1 p-8 overflow-y-auto custom-scrollbar"
+      className="p-8 pb-32"
     >
       <div className="max-w-4xl mx-auto">
         <div className="relative mb-12 group">

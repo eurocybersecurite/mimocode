@@ -57,7 +57,6 @@ export function PluginsPage({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full overflow-y-auto custom-scrollbar"
     >
       <div className="max-w-6xl mx-auto p-8 pb-32 space-y-8">
         <div className="flex items-center justify-between">
