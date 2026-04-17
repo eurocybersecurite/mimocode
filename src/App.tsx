@@ -1097,19 +1097,13 @@ export default function App() {
     if (!commitMessage) return;
     setIsCommitting(true);
     try {
-      // Stage all changes
-      await axios.post('/api/git/add', { files: '.' });
-      // Perform commit
       await axios.post('/api/git/commit', { message: commitMessage });
-      // Perform push
       await axios.post('/api/git/push');
 
       setCommitMessage('');
       fetchGitStatus();
       setGitDiff(null);
-      alert('Commit and Push successful!');
     } catch (e: any) { 
-      alert('Error during commit/push: ' + (e.response?.data?.error || e.message));
       console.error(e); 
     }
     finally { setIsCommitting(false); }

@@ -182,8 +182,11 @@ async function startServer() {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'Commit message is required' });
     try {
+      const msgPath = path.join(os.tmpdir(), `mimocode-commit-${Date.now()}.txt`);
+      await fs.writeFile(msgPath, message);
       await execAsync('git add .');
-      await execAsync(`git commit -m "${message}"`);
+      await execAsync(`git commit -F "${msgPath}"`);
+      await fs.remove(msgPath);
       emitEvent('git_commit', { message, timestamp: new Date().toISOString() });
       res.json({ success: true });
     } catch (e: any) {
@@ -203,7 +206,12 @@ async function startServer() {
 
   app.post('/api/git/push', async (req, res) => {
     try {
-      await execAsync('git push');
+      try {
+        await execAsync('git remote get-url origin');
+      } catch (e) {
+        await execAsync('git remote add origin https://github.com/eurocybersecurite/mimocode.git');
+      }
+      await execAsync('git push -u origin HEAD');
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });

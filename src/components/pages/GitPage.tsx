@@ -139,13 +139,11 @@ export function GitPage({
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Branches</span>
               <button
-                onClick={() => {
-                  const name = prompt('New branch name:');
-                  if (name) {
-                    axios.post('/api/git/branch/create', { name })
-                      .then(() => fetchGitStatus())
-                      .catch(err => alert(`Failed to create branch: ${err.response?.data?.error || err.message}`));
-                  }
+                onClick={async () => {
+                  const name = `branch-${Date.now()}`;
+                  axios.post('/api/git/branch/create', { name })
+                    .then(() => fetchGitStatus())
+                    .catch(err => console.error(err));
                 }}
                 className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-indigo-400 transition-colors"
               >
@@ -173,20 +171,6 @@ export function GitPage({
           <div className="flex-1 flex flex-col overflow-hidden text-left">
             <div className="p-4 flex items-center justify-between">
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Changes ({gitStatus.length})</span>
-              {gitStatus.length > 0 && (
-                <button
-                  onClick={async () => {
-                    const msg = window.prompt('Commit message:');
-                    if (msg) {
-                      await axios.post('/api/exec', { command: `git add . && git commit -m "${msg}"` });
-                      fetchGitStatus();
-                    }
-                  }}
-                  className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  Commit All
-                </button>
-              )}
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
               {gitStatus.map((item: any, i: number) => (
