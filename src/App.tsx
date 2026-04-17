@@ -437,7 +437,7 @@ export default function App() {
   const fetchChatHistory = async () => {
     setIsChatLoading(true);
     try {
-      const res = await axios.get('/api/chat/history');
+      const res = await axios.get(`/api/chat/history?workspace=${encodeURIComponent(currentPath)}`);
       setChatHistory(res.data);
     } catch (e) { console.error(e); }
     finally { setIsChatLoading(false); }

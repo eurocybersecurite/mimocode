@@ -276,16 +276,16 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
   },
   {
     name: 'run_command',
-    description: 'Execute any shell command (bash/zsh). Use this for running tests, installing packages, or any system-level action. Set background: true for long-running servers. You can specify a "cwd" to run the command in a specific directory.',
+    description: 'Execute any shell command (bash/zsh). Set background: true for servers. It will automatically try to fix common errors like missing directories.',
     execute: async ({ command, background = false, cwd }) => {
-      return new Promise((resolve) => {
-        const executionCwd = cwd ? (path.isAbsolute(cwd) ? cwd : path.resolve(process.cwd(), cwd)) : process.cwd();
-        
-        if (cwd && !fs.existsSync(executionCwd)) {
-          resolve(`Error: Directory ${executionCwd} does not exist.`);
-          return;
-        }
+      const executionCwd = cwd ? (path.isAbsolute(cwd) ? cwd : path.resolve(process.cwd(), cwd)) : process.cwd();
+      
+      // Auto-fix: If directory doesn't exist, try to create it or run in root
+      if (cwd && !fs.existsSync(executionCwd)) {
+        await fs.ensureDir(executionCwd);
+      }
 
+      return new Promise((resolve) => {
         const child = spawn(command, { shell: true, cwd: executionCwd });
         let stdout = '';
         let stderr = '';
@@ -296,7 +296,6 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
           stdout += chunk;
           process.stdout.write(chunk);
 
-          // Smart detection for servers to avoid blocking
           if (!resolved && (
             chunk.includes('ready in') || 
             chunk.includes('Local: http') || 
@@ -304,7 +303,7 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
             chunk.includes('Compiled successfully')
           )) {
             resolved = true;
-            resolve(stdout + '\n[Server started successfully]');
+            resolve(`Output: ${stdout}\n[Status: Server started successfully]`);
           }
         });
         
@@ -318,9 +317,14 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
           if (resolved) return;
           resolved = true;
           if (code === 0) {
-            resolve(stdout || 'Command executed successfully.');
+            resolve(`Output: ${stdout || 'Success'}`);
           } else {
-            resolve(`Command failed with exit code ${code}.\n${stderr || stdout}`);
+            // Smarter error reporting
+            let errorMsg = stderr || stdout;
+            if (errorMsg.includes('Missing script: "start"')) {
+              errorMsg += "\nTip: For Vite/React projects, try 'npm run dev' instead of 'npm start'.";
+            }
+            resolve(`Error (Exit Code ${code}): ${errorMsg}`);
           }
         });
         
@@ -328,15 +332,15 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
           setTimeout(() => {
             if (!resolved) {
               resolved = true;
-              resolve(stdout + '\n[Command continues to run in background]');
+              resolve(`Output so far: ${stdout}\n[Status: Running in background]`);
             }
-          }, 2000);
+          }, 5000);
         }
 
         child.on('error', (err) => {
           if (resolved) return;
           resolved = true;
-          resolve(`Failed to start command: ${err.message}`);
+          resolve(`Execution Error: ${err.message}`);
         });
       });
     },
@@ -380,14 +384,10 @@ if __name__ == "__main__":
           await fs.writeFile(path.join(root, 'requirements.txt'), '', 'utf-8');
           break;
         case 'react':
-          // We suggest using vite via run_command for react, but we can scaffold a basic structure
-          await fs.ensureDir(path.join(root, 'src'));
-          await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({
-            name,
-            version: '1.0.0',
-            dependencies: { react: '^18.0.0', 'react-dom': '^18.0.0' }
-          }, null, 2), 'utf-8');
-          break;
+          // Use a proper modern scaffold
+          await fs.ensureDir(root);
+          await execAsync('npm create vite@latest . -- --template react-ts', { cwd: root });
+          return `React project ${name} bootstrapped using Vite (TypeScript) in ${root}. You should now run 'npm install' inside that directory.`;
         case 'node':
           await fs.writeFile(path.join(root, 'index.js'), `console.log("Hello from Node.js project: ${name}");`);
           await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({

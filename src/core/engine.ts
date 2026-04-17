@@ -73,15 +73,28 @@ export class MimocodeEngine {
     const sessionId = await getOrCreateSession(this.currentWorkspace);
     let messages = await getSessionMessages(sessionId);
     
-    // Inject hierarchical context
+    // 1. Hierarchical Context
     const hContext = await this.getHierarchicalContext();
     if (hContext) {
       messages = [{ role: 'system', content: hContext }, ...messages];
     }
 
-    // Compress history if needed
-    messages = this.compressHistory(messages);
+    // 2. High-Level Reasoning (Prioritize over Skills for complex requests)
+    const analysis = await import('./orchestrator').then(m => m.analyzeComplexity(this.config!, input));
+    
+    if (analysis.complexity === 'complex' || input.toLowerCase().includes('react') || input.toLowerCase().includes('app')) {
+       const response = await import('./orchestrator').then(m => m.processUserInput(
+        this.config!, 
+        input, 
+        onToolCall, 
+        signal
+      ));
+      await saveMessage(sessionId, 'user', input);
+      await saveMessage(sessionId, 'assistant', response);
+      return { content: response, toolsCalled: [] };
+    }
 
+    // 3. Fallback to skills or normal process
     const response = await processUserInput(
       this.config!, 
       input, 

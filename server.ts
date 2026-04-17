@@ -109,8 +109,9 @@ async function startServer() {
 
   // API to get chat history
   app.get('/api/chat/history', async (req, res) => {
+    const { workspace } = req.query;
     try {
-      const sessionId = await getOrCreateSession(PROJECT_ROOT);
+      const sessionId = await getOrCreateSession((workspace as string) || PROJECT_ROOT);
       const messages = await getSessionMessages(sessionId);
       res.json(messages);
     } catch (e: any) {

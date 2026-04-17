@@ -3,7 +3,6 @@ import path from 'path';
 import os from 'os';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-
 import boxen from 'boxen';
 import { marked } from 'marked';
 import TerminalRenderer from 'marked-terminal';
@@ -20,8 +19,8 @@ interface BlockedConfig {
   instructions: Record<string, string>;
 }
 
+let fullSessionTrust = false;
 let sessionAllowed = new Set<string>();
-let sessionFileOperationsAllowed = false;
 let blockedConfig: BlockedConfig = { blocked: [], instructions: {} };
 
 export async function initPermissions() {
@@ -35,65 +34,35 @@ async function saveBlocked() {
   await fs.writeJson(BLOCKED_FILE, blockedConfig, { spaces: 2 });
 }
 
-export function isSensitive(command: string): boolean {
-  const sensitivePatterns = [
-    /\brm\b/,
-    /\bsudo\b/,
-    /\bchmod\b\s+777\b/,
-    /\bdd\b/,
-    /\bkill\b/,
-    /\bformat\b/,
-    /\bmkfs\b/,
-    /\bshred\b/
-  ];
-  return sensitivePatterns.some(pattern => pattern.test(command));
-}
-
+/**
+ * Main permission checker - Proactive & Less noisy
+ */
 export async function checkPermission(command: string, details?: string): Promise<{ allowed: boolean; instruction?: string }> {
-  // Check permanent blocks
+  // 1. Full session trust? (The user said: "Take control")
+  if (fullSessionTrust) return { allowed: true };
+
+  // 2. Permanent block check
   if (blockedConfig.blocked.some(b => command.includes(b))) {
-    console.log(chalk.red(`🚫 Command blocked permanently: ${command}`));
+    console.log(chalk.red(`🚫 Command blocked by user policy: ${command}`));
     return { allowed: false };
   }
 
-  // Check session allowed
-  if (sessionAllowed.has(command)) {
-    return { allowed: true, instruction: blockedConfig.instructions[command] };
-  }
+  // 3. Specific session whitelist
+  if (sessionAllowed.has(command)) return { allowed: true };
 
-  // Check session-wide file operations
-  const isFileOp = command.startsWith('write ') || command.startsWith('rm ') || command.startsWith('read ');
-  if (isFileOp && sessionFileOperationsAllowed) {
-    return { allowed: true };
-  }
+  // 4. Fast-allow for read-only or safe operations
+  const safePatterns = [/git status/, /ls /, /cat /, /grep /, /find /, /npm test/, /git diff/];
+  if (safePatterns.some(p => p.test(command)) && !details) return { allowed: true };
 
-  // If not sensitive, allow directly
-  if (!isSensitive(command) && !details) {
-    return { allowed: true };
-  }
+  // 5. Non-interactive mode (Web / CI)
+  if (process.env.MIMOCODE_NON_INTERACTIVE === 'true') return { allowed: true };
 
-  // If non-interactive (e.g. Web UI), auto-allow but log
-  if (process.env.MIMOCODE_NON_INTERACTIVE === 'true') {
-    console.log(chalk.yellow(`[Permissions] Auto-allowing sensitive command in non-interactive mode: ${command}`));
-    return { allowed: true };
-  }
-
-  // Sensitive command or explicit details - ask user
-  let boxContent = details || `The agent wants to execute: \`${command}\``;
-  
-  // If details contains a diff (detected by our custom box characters), 
-  // we split it to render markdown only on the text part
-  if (boxContent.includes('┌') && boxContent.includes('📝 Changes in')) {
-    const parts = boxContent.split('📝 Changes in');
-    const textPart = await marked.parse(parts[0]);
-    boxContent = textPart + '\n📝 Changes in' + parts[1];
-  } else {
-    boxContent = await marked.parse(boxContent);
-  }
+  // 6. User Decision Required
+  let boxContent = details || `Mimocode wants to execute: \`${command}\``;
+  boxContent = await marked.parse(boxContent);
   
   console.log('\n' + boxen(boxContent, {
-    title: chalk.bold.yellow(' Action Required '),
-    titleAlignment: 'left',
+    title: chalk.bold.yellow(' ⚡ Permission Required '),
     padding: 1,
     borderStyle: 'round',
     borderColor: 'yellow',
@@ -103,12 +72,11 @@ export async function checkPermission(command: string, details?: string): Promis
   const { choice } = await inquirer.prompt([{
     type: 'list',
     name: 'choice',
-    message: 'Apply this change?',
+    message: 'Action selection:',
     choices: [
       { name: '✅ Allow once', value: 'once' },
-      { name: '🔓 Allow for this session', value: 'session' },
-      { name: '⏭️  Skip', value: 'skip' },
-      { name: '📝 Allow with instruction', value: 'instruction' },
+      { name: '🔓 Allow for this session (Full Trust)', value: 'session' },
+      { name: '⏭️  Skip this action', value: 'skip' },
       { name: '🚫 Block permanently', value: 'permanent' }
     ]
   }]);
@@ -117,24 +85,11 @@ export async function checkPermission(command: string, details?: string): Promis
     case 'once':
       return { allowed: true };
     case 'session':
-      if (isFileOp) {
-        sessionFileOperationsAllowed = true;
-      } else {
-        sessionAllowed.add(command);
-      }
+      fullSessionTrust = true;
+      console.log(chalk.green('🔓 Full session trust enabled. Mimocode will now work autonomously.'));
       return { allowed: true };
     case 'skip':
       return { allowed: false };
-    case 'instruction':
-      const { instruction } = await inquirer.prompt([{
-        type: 'input',
-        name: 'instruction',
-        message: 'Enter special instruction for this command:'
-      }]);
-      blockedConfig.instructions[command] = instruction;
-      sessionAllowed.add(command);
-      await saveBlocked();
-      return { allowed: true, instruction };
     case 'permanent':
       blockedConfig.blocked.push(command);
       await saveBlocked();
