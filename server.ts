@@ -7,17 +7,18 @@ import fs from 'fs-extra';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import os from 'os';
-import { indexDirectory, queryIndex } from './src/cli/rag';
-import { loadSkills, createSkill, runSkill, deleteSkill } from './src/cli/skills';
-import { createCheckpoint, restoreLatest } from './src/cli/checkpoints';
-import { improveSelf, learnHabits } from './src/cli/improve';
-import { getOrCreateSession, getSessionMessages, saveMessage } from './src/cli/db';
-import { loadConfig, saveConfig, DEFAULT_CONFIG } from './src/cli/config';
-import { collaborate, loadAgents, createAgent, deleteAgent, loadHistory } from './src/cli/agents';
-import { generatePlan, executePlan } from './src/cli/planner';
-import { runInSandbox } from './src/cli/sandbox';
-import { setupVSCode } from './src/cli/vscode';
-import { mcpTools } from './src/cli/mcp';
+import { indexDirectory, queryIndex } from './src/core/rag';
+import { loadSkills, createSkill, runSkill, deleteSkill } from './src/core/skills';
+import { createCheckpoint, restoreLatest } from './src/core/checkpoints';
+import { improveSelf, learnHabits } from './src/core/improve';
+import { getOrCreateSession, getSessionMessages, saveMessage } from './src/core/db';
+import { loadConfig, saveConfig, DEFAULT_CONFIG } from './src/core/config';
+import { collaborate, loadAgents, createAgent, deleteAgent, loadHistory } from './src/core/agents';
+import { generatePlan, executePlan } from './src/core/planner';
+import { runInSandbox } from './src/core/sandbox';
+import { setupVSCode } from './src/core/vscode';
+import { mcpTools } from './src/core/mcp';
+import { engine } from './src/core/engine';
 
 dotenv.config();
 
@@ -218,9 +219,43 @@ async function startServer() {
     }
   });
 
-  app.post('/api/git/pull', async (req, res) => {
+  app.get('/api/git/log', async (req, res) => {
     try {
-      await execAsync('git pull');
+      const { stdout } = await execAsync('git log -n 20 --pretty=format:"%h|%an|%ar|%s"');
+      const commits = stdout.split('\n').filter(l => l.trim()).map(line => {
+        const [hash, author, date, message] = line.split('|');
+        return { hash, author, date, message };
+      });
+      res.json(commits);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/git/stage', async (req, res) => {
+    const { filePath } = req.body;
+    try {
+      await execAsync(`git add "${filePath}"`);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/git/unstage', async (req, res) => {
+    const { filePath } = req.body;
+    try {
+      await execAsync(`git reset HEAD "${filePath}"`);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/git/discard', async (req, res) => {
+    const { filePath } = req.body;
+    try {
+      await execAsync(`git checkout -- "${filePath}"`);
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -255,6 +290,16 @@ async function startServer() {
     const { name } = req.body;
     try {
       await execAsync(`git checkout -b ${name}`);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete('/api/git/branch/:name', async (req, res) => {
+    const { name } = req.params;
+    try {
+      await execAsync(`git branch -D ${name}`);
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });

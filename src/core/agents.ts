@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import { autoVerifyToolCall } from './agent_verifier';
 import { gitTools } from './mcp/git';
 import { dockerTools } from './mcp/docker';
-import { loadPlugins } from './plugins';
+import { loadPlugins } from '../cli/plugins';
 import { getSkillTools, createSkill } from './skills';
 import { getMemory, getAllMemory } from './memory';
 import inquirer from 'inquirer';
@@ -79,6 +79,22 @@ export async function loadAgents(config: Config): Promise<Agent[]> {
       persona: 'Patient, methodical, and persistent.',
       systemInstruction: 'You are a debugging specialist. Use tools to read files, run commands, and identify the root cause of issues. Always suggest a fix and apply it if possible.',
       tags: ['debug', 'fix']
+    },
+    {
+      name: 'frontend-expert',
+      description: 'Expert in UI/UX, React, Tailwind CSS, and modern frontend frameworks.',
+      role: 'Senior Frontend Engineer',
+      persona: 'Creative, detail-oriented, and focused on user experience.',
+      systemInstruction: 'You are a frontend expert. Focus on creating beautiful, responsive, and accessible user interfaces. Use React, TypeScript, and Tailwind CSS. Ensure perfect alignment, spacing, and modern aesthetics. When editing files, maintain consistency with the existing design system.',
+      tags: ['frontend', 'react', 'ui', 'ux']
+    },
+    {
+      name: 'backend-expert',
+      description: 'Expert in Node.js, Express, databases, and system architecture.',
+      role: 'Senior Backend Engineer',
+      persona: 'Logical, robust, and security-conscious.',
+      systemInstruction: 'You are a backend expert. Focus on creating high-performance, secure, and scalable server-side logic. Use Node.js, Express, and SQLite. Optimize database queries, handle errors gracefully, and ensure robust API design.',
+      tags: ['backend', 'api', 'database', 'node']
     },
     {
       name: 'security-audit',
