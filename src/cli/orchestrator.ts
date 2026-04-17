@@ -30,14 +30,19 @@ Respond ONLY with a JSON object in this format:
 }
 
 Guidelines:
-- simple: general chat, greetings, or a SINGLE small action (like creating ONE file).
-- medium: multiple actions, creating 2-5 files, implementing features.
-- complex: new projects, major refactoring, architecture changes, or tasks requiring significant research.
+- simple: general chat, greetings, questions about facts, or a SINGLE small action (like creating ONE file).
+- medium: implementation of a specific feature, multiple coding actions, creating 2-5 files.
+- complex: full project creation, major codebase-wide refactoring, complex multi-step architecture changes, or highly technical research requiring deep analysis.
+
+Categorization Tips:
+- If it's a question about a concept (e.g. "What is an LLM?"), it's SIMPLE.
+- If it's a request to "find info about X", it's usually SIMPLE or MEDIUM, NOT complex unless it's for building a whole new system.
+- If it's a request to build, fix, or change code, it's MEDIUM or COMPLEX.
 
 Agent Selection:
-- researcher: Use for ANY task that requires gathering information from the web, GitHub, documentation, or searching for best practices.
-- architect: Use for designing system structure, choosing technologies, or high-level planning.
-- coder: Use for actual implementation, writing code, and creating files.
+- researcher: Use for tasks that require gathering info from web/docs, but if it's a simple question, mark complexity as 'simple'.
+- architect: Use for designing system structure or high-level planning.
+- coder: Use for implementation and writing code.
 - general: Use for simple chat or when no specialized agent fits.`;
 
   const response = await callLLM(config, [{ role: 'user', content: prompt }]);

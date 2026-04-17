@@ -23,9 +23,9 @@ export function DashboardPage({
     <motion.div 
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex-1 p-8 overflow-y-auto custom-scrollbar"
+      className="p-8"
     >
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8 pb-32">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-zinc-100">System Dashboard</h2>

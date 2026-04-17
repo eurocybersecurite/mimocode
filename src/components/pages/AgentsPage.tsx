@@ -44,8 +44,9 @@ export function AgentsPage({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full p-6 overflow-y-auto"
+      className="p-6"
     >
+      <div className="max-w-6xl mx-auto pb-32">
       <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="relative w-full md:w-96">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -140,6 +141,7 @@ export function AgentsPage({
             <p className="text-sm font-medium">No agents found</p>
           </div>
         )}
+      </div>
       </div>
     </motion.div>
   );

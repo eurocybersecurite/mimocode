@@ -52,7 +52,7 @@ export const Timeline = ({ events, setActiveTab }: TimelineProps) => {
                  event.type.includes('deploy') ? <Globe size={14} /> :
                  <Activity size={14} />}
               </div>
-              <div className="flex-1 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-5 hover:border-zinc-700 transition-all backdrop-blur-sm">
+              <div className="flex-1 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-5 hover:border-zinc-700 transition-all backdrop-blur-sm text-left">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                     {event.type.replace(/_/g, ' ')}
@@ -67,6 +67,12 @@ export const Timeline = ({ events, setActiveTab }: TimelineProps) => {
                   )}
                   {event.type === 'tool_success' && (
                     <p>Successfully executed <code className="text-green-400 font-mono bg-green-500/10 px-1.5 py-0.5 rounded">{event.data.name}</code></p>
+                  )}
+                  {event.type === 'file_save' && (
+                    <p>Saved file <code className="text-indigo-400 font-mono bg-indigo-500/10 px-1.5 py-0.5 rounded">{event.data.filePath}</code></p>
+                  )}
+                  {event.type === 'git_commit' && (
+                    <p>Committed changes: <span className="text-zinc-400 italic">"{event.data.message}"</span></p>
                   )}
                   {event.type === 'deploy_progress' && (
                     <div className="space-y-3">
@@ -89,7 +95,9 @@ export const Timeline = ({ events, setActiveTab }: TimelineProps) => {
                   {event.type === 'chat_start' && (
                     <p className="italic text-zinc-400 border-l-2 border-zinc-700 pl-3">"{event.data.input}"</p>
                   )}
-                  {typeof event.data === 'string' ? <p>{event.data}</p> : null}
+                  {!['tool_start', 'tool_success', 'file_save', 'git_commit', 'deploy_progress', 'deploy_success', 'chat_start'].includes(event.type) && (
+                    <p>{typeof event.data === 'string' ? event.data : JSON.stringify(event.data)}</p>
+                  )}
                 </div>
               </div>
             </motion.div>

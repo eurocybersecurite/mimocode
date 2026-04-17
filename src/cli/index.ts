@@ -61,14 +61,14 @@ try {
 
 marked.setOptions({
   renderer: new TerminalRenderer({
-    codespan: chalk.hex('#facc15'), // Yellow-400
-    code: chalk.hex('#e2e8f0'),     // Slate-200
+    codespan: chalk.hex('#eab308'),
+    code: chalk.bgHex('#18181b').hex('#f8fafc'),
     heading: chalk.bold.hex('#6366f1'),
-    link: chalk.cyan,
-    strong: chalk.bold,
-    em: chalk.italic,
-    listitem: (text: string) => chalk.dim(' • ') + text + '\n',
-    hr: () => chalk.dim('─'.repeat(process.stdout.columns || 40)) + '\n'
+    link: chalk.cyan.underline,
+    strong: chalk.bold.white,
+    em: chalk.italic.gray,
+    listitem: (text: string) => chalk.dim(' ◦ ') + text + '\n',
+    hr: () => chalk.dim('\n' + '─'.repeat(process.stdout.columns || 40) + '\n')
   }) as any
 });
 
@@ -374,49 +374,183 @@ async function runSetup(config: Config) {
 }
 
 async function startMimocodeChat(config: Config, initialInput?: string) {
+  const configPath = path.join(os.homedir(), '.mimocode', 'config.json');
+  const isFirstLaunch = !await fs.pathExists(configPath);
   await loadCLIHistory();
 
-  const sessionId = await getOrCreateSession(currentWorkspace);
-  const initialMessages = await getSessionMessages(sessionId);
+  if (isFirstLaunch) {
+    await runSetup(config);
+  } else {
+    const { action } = await inquirer.prompt([{
+      type: 'list',
+      name: 'action',
+      message: 'What would you like to do?',
+      choices: [
+        { name: 'Start Chatting', value: 'chat' },
+        { name: 'Clear History & Start', value: 'clear' },
+        { name: 'Run Setup', value: 'setup' },
+        { name: 'Exit', value: 'exit' }
+      ]
+    }]);
+
+    if (action === 'exit') process.exit(0);
+    if (action === 'setup') await runSetup(config);
+    if (action === 'clear') {
+      const sessionId = await getOrCreateSession(currentWorkspace);
+      const { clearSessionMessages } = await import('./db');
+      await clearSessionMessages(sessionId);
+      await saveChatHistory(config, []);
+      console.log(chalk.dim('History cleared.'));
+    }
+  }
+
+  console.clear();
   const agents = await loadAgents(config);
   const skills = await loadSkills(config);
+  const sessionId = await getOrCreateSession(currentWorkspace);
+  renderMimocodeHeader(config);
 
-  const onCommand = async (input: string) => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: true,
+    historySize: 100
+  });
+
+  let isProcessing = false;
+  let multiLineBuffer = '';
+  let abortController = new AbortController();
+
+  const drawStatusBar = () => {
+    const cols = process.stdout.columns || 80;
+    const workspaceStr = ` ${chalk.blue('workspace')} (/directory) `;
+    const sandboxStr = ` ${chalk.blue('sandbox')} `;
+    const modelStr = ` ${chalk.blue('/model')} `;
+    
+    const wsVal = ` ${path.basename(currentWorkspace)} `;
+    const sbVal = ` ${sandboxMode ? 'sandbox' : 'no sandbox'} `;
+    const mdVal = ` ${config.model} `;
+
+    process.stdout.write('\n');
+    process.stdout.write(chalk.dim('─'.repeat(cols)) + '\n');
+    process.stdout.write(workspaceStr.padEnd(Math.floor(cols * 0.4)) + sandboxStr.padEnd(Math.floor(cols * 0.3)) + modelStr + '\n');
+    process.stdout.write(chalk.dim(currentWorkspace).padEnd(Math.floor(cols * 0.4)) + chalk.dim(sbVal).padEnd(Math.floor(cols * 0.3)) + chalk.dim(mdVal) + '\n');
+    process.stdout.write(chalk.dim('─'.repeat(cols)) + '\n');
+    process.stdout.write(`\x1b[4A`); // Move back up
+  };
+
+  const drawPrompt = () => {
+    if (isProcessing) return;
+    process.stdout.write(`\n${chalk.bold.hex('#6366f1')('> ')}`);
+    drawStatusBar();
+    process.stdout.write(`\x1b[4B\r\x1b[K`); // Move cursor to prompt line
+    process.stdout.write(`\x1b[4A\r\x1b[2C`);
+  };
+
+  const processInput = async (input: string) => {
     const trimmedInput = input.trim();
-    if (!trimmedInput) return;
+    if (!trimmedInput) { drawPrompt(); return; }
 
-    if (trimmedInput.startsWith('/')) {
-      await handleSlashCommand(trimmedInput, config, agents, skills);
+    if (trimmedInput === '?') { await showShortcuts(); drawPrompt(); return; }
+    if (trimmedInput.toLowerCase() === 'exit' || trimmedInput.toLowerCase() === '/exit') process.exit(0);
+
+    const commandName = trimmedInput.startsWith('/') ? trimmedInput.slice(1).split(' ')[0] : trimmedInput.split(' ')[0];
+    const isSlashCommand = slashCommands.some(c => c.name === commandName || c.alias === commandName || c.name === 'help' && commandName === 'h');
+
+    if (isSlashCommand) {
+      const cmdToHandle = trimmedInput.startsWith('/') ? trimmedInput : `/${trimmedInput}`;
+      await handleSlashCommand(cmdToHandle, config, agents, skills);
+      drawPrompt();
       return;
     }
 
-    const sessionId = await getOrCreateSession(currentWorkspace);
-    const messages = await getSessionMessages(sessionId);
+    isProcessing = true;
+    abortController = new AbortController();
     
-    const abortController = new AbortController();
+    // Auto-save history
+    if (messageHistory[messageHistory.length - 1] !== trimmedInput) {
+      messageHistory.push(trimmedInput);
+      await saveCLIHistory();
+    }
+    historyIndex = messageHistory.length;
 
-    const response = await callLLMWithTools(
-      config,
-      messages,
-      { stream: true },
-      async (name, args, result, error) => {
+    console.log(''); // New line after prompt
+    
+    const startTime = Date.now();
+    const spinner = ora({
+      text: chalk.bold.cyan('Mimocode') + chalk.dim(' thinking...'),
+      spinner: 'dots12'
+    }).start();
+    
+    const timerInterval = setInterval(() => {
+      const seconds = Math.floor((Date.now() - startTime) / 1000);
+      spinner.text = chalk.bold.cyan('Mimocode') + chalk.dim(` thinking... (${seconds}s)`);
+    }, 1000);
+
+    try {
+      const messages = await getSessionMessages(sessionId);
+      const response = await processUserInput(config, trimmedInput, async (name, args, result, error) => {
+        spinner.stop();
         displayToolCall(name, args, result, error);
-      },
-      (chunk) => {
-        // Handle streaming text
-      },
-      [],
-      (name, args) => {
-        // Handle tool start
-      },
-      abortController.signal
-    );
-
-    await saveMessage(sessionId, 'user', trimmedInput);
-    await saveMessage(sessionId, 'assistant', response.fullResponse);
+        spinner.start();
+      }, abortController.signal);
+      
+      clearInterval(timerInterval);
+      spinner.stop();
+      
+      process.stdout.write(chalk.hex('#6366f1')('✦ ') + await marked.parse(response) + '\n');
+      
+      await saveMessage(sessionId, 'user', trimmedInput);
+      await saveMessage(sessionId, 'assistant', response);
+      
+    } catch (e: any) {
+      spinner.stop();
+      clearInterval(timerInterval);
+      if (e.message === 'Operation aborted by user' || abortController.signal.aborted) {
+        console.log(chalk.yellow('\n⏹️  Operation cancelled.\n'));
+      } else {
+        spinner.fail(chalk.red(`Error: ${e.message}`));
+      }
+    } finally {
+      isProcessing = false;
+      drawPrompt();
+    }
   };
 
-  render(React.createElement(App, { config, initialMessages, onCommand }));
+  rl.on('line', (line) => {
+    if (isProcessing) return;
+    processInput(line);
+  });
+
+  process.stdin.on('keypress', (str, key) => {
+    if (!key) return;
+    
+    if (key.name === 'escape') {
+      if (isProcessing) {
+        abortController.abort();
+      } else {
+        // Clear line
+        (rl as any).line = '';
+        (rl as any).cursor = 0;
+        (rl as any)._refreshLine();
+      }
+      return;
+    }
+
+    // Shift+Tab for Plan
+    if (key.name === 'tab' && key.shift) {
+      const line = (rl as any).line;
+      if (line.trim()) {
+        (rl as any).line = `/plan ${line}`;
+        (rl as any).cursor = (rl as any).line.length;
+        (rl as any)._refreshLine();
+      }
+      return;
+    }
+  });
+
+  drawPrompt();
+  if (initialInput) await processInput(initialInput);
 }
 
 async function handleSlashCommand(input: string, config: Config, agents: Agent[], skills: any[]) {
@@ -862,29 +996,13 @@ program
   .command('chat')
   .description('Start interactive chat session')
   .action(async () => {
-    const configPath = path.join(os.homedir(), '.mimocode', 'config.json');
-    const isFirstLaunch = !await fs.pathExists(configPath);
-    
-    let config = await loadConfig();
-    if (isFirstLaunch) {
-      await runSetup(config);
-      config = await loadConfig();
-    }
-    
+    const config = await loadConfig();
     await initPermissions();
     await startMimocodeChat(config);
   });
 
 program.action(async () => {
-  const configPath = path.join(os.homedir(), '.mimocode', 'config.json');
-  const isFirstLaunch = !await fs.pathExists(configPath);
-  
-  let config = await loadConfig();
-  if (isFirstLaunch) {
-    await runSetup(config);
-    config = await loadConfig();
-  }
-
+  const config = await loadConfig();
   await initPermissions();
   await startMimocodeChat(config);
 });

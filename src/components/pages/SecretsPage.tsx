@@ -29,9 +29,9 @@ export function SecretsPage({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full p-8 overflow-y-auto"
+      className="p-8"
     >
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto pb-32 space-y-8">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-zinc-100">Secrets Manager</h2>

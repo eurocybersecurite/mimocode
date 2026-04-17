@@ -62,6 +62,11 @@ export async function getSessionMessages(sessionId: string) {
   return db.all('SELECT role, content FROM messages WHERE session_id = ? ORDER BY created_at ASC', [sessionId]);
 }
 
+export async function clearSessionMessages(sessionId: string) {
+  const db = await getDB();
+  await db.run('DELETE FROM messages WHERE session_id = ?', [sessionId]);
+}
+
 export async function getOrCreateSession(workspace: string, name?: string): Promise<string> {
   const db = await getDB();
   const session = await db.get('SELECT id FROM sessions WHERE workspace = ? ORDER BY updated_at DESC LIMIT 1', [workspace]);

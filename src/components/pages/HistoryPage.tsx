@@ -28,8 +28,9 @@ export function HistoryPage({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full p-6 overflow-hidden flex flex-col"
+      className="p-6"
     >
+      <div className="max-w-6xl mx-auto pb-32">
       <div className="mb-6 relative w-full md:w-96">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
         <input 
@@ -131,6 +132,7 @@ export function HistoryPage({
             <p className="text-sm font-medium">No history entries found</p>
           </div>
         )}
+      </div>
       </div>
     </motion.div>
   );

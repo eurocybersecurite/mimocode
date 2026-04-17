@@ -150,9 +150,28 @@ export default function App() {
     }
   };
 
+  const fetchTimeline = async () => {
+    try {
+      const res = await axios.get('/api/timeline');
+      setEvents(res.data);
+    } catch (e) { console.error(e); }
+  };
+
   useEffect(() => {
+    fetchConfig();
+    fetchAgents();
+    fetchHistory();
+    fetchSkills();
+    fetchFiles();
+    fetchMcpData();
+    fetchGitStatus();
+    fetchSecrets();
+    fetchPluginStore();
+    fetchDashboardMetrics();
     fetchTerminalHistory();
+    fetchTimeline();
   }, []);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [richOutput, setRichOutput] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'terminal' | 'split' | 'rich'>('split');
   const [activeTab, setActiveTab] = useState<'terminal' | 'agents' | 'history' | 'chat' | 'skills' | 'files' | 'preview' | 'timeline' | 'deploy' | 'dashboard' | 'roadmap' | 'mcp' | 'search' | 'orchestration' | 'git' | 'secrets' | 'plugins' | 'settings'>('terminal');
@@ -229,6 +248,12 @@ export default function App() {
   const [newSkill, setNewSkill] = useState({ name: '', description: '', prompt: '', tags: [] });
   const [pendingSkills, setPendingSkills] = useState<any[]>([]);
   const [isPendingSkillsLoading, setIsPendingSkillsLoading] = useState(false);
+  const [isGitLoading, setIsGitLoading] = useState(false);
+  const [roadmapPhases, setRoadmapPhases] = useState<any[]>([]);
+  const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
+  const [agentPerformance, setAgentPerformance] = useState<any>(null);
+  const [skillSearchTerm, setSkillSearchTerm] = useState('');
+  const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<string | null>(null);
 
   // SSE Connection
   useEffect(() => {
@@ -298,13 +323,33 @@ export default function App() {
     };
     return () => eventSource.close();
   }, [currentPath]);
-  const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<string | null>(null);
-  const [isGitLoading, setIsGitLoading] = useState(false);
-  const [roadmapPhases, setRoadmapPhases] = useState<any[]>([]);
-  const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
-  const [agentPerformance, setAgentPerformance] = useState<any>(null);
-  const [skillSearchTerm, setSkillSearchTerm] = useState('');
-  const [setSkillSearchTermState, setSetSkillSearchTerm] = useState<any>(null); // Dummy for now if needed
+  const fetchDashboardMetrics = async () => {
+    try {
+      const [agentsRes, historyRes, skillsRes, gitRes] = await Promise.all([
+        axios.get('/api/agents/details'),
+        axios.get('/api/history'),
+        axios.get('/api/skills'),
+        axios.get('/api/git/status')
+      ]);
+      
+      const metrics = {
+        totalAgents: agentsRes.data.length,
+        totalActions: historyRes.data.length,
+        totalSkills: skillsRes.data.length,
+        gitChanges: gitRes.data.length,
+        activityData: [
+          { name: 'Mon', actions: 12 },
+          { name: 'Tue', actions: 19 },
+          { name: 'Wed', actions: 15 },
+          { name: 'Thu', actions: 22 },
+          { name: 'Fri', actions: 30 },
+          { name: 'Sat', actions: 10 },
+          { name: 'Sun', actions: 5 },
+        ]
+      };
+      setDashboardMetrics(metrics);
+    } catch (e) { console.error(e); }
+  };
 
   const saveConfig = async () => {
     if (!config) return;
@@ -1170,6 +1215,13 @@ export default function App() {
     }
   };
 
+  const handleInstallPlugin = async (id: string) => {
+    try {
+      await axios.post('/api/plugins/install', { id });
+      fetchPluginStore();
+    } catch (e) { console.error(e); }
+  };
+
   const filteredAgents = agents.filter(a => {
     const matchesSearch = a.name.toLowerCase().includes(agentSearchTerm.toLowerCase()) || 
                          a.description.toLowerCase().includes(agentSearchTerm.toLowerCase());
@@ -1206,23 +1258,42 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100 selection:bg-indigo-500/30 overflow-hidden" style={{ fontFamily: config?.theme?.web?.fontFamily || 'Inter, sans-serif' }}>
-      <Sidebar 
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        config={config}
-        fetchAgents={fetchAgents}
-        fetchHistory={fetchHistory}
-        fetchSkills={fetchSkills}
-        fetchFiles={fetchFiles}
-        fetchMcpData={fetchMcpData}
-        fetchGitStatus={fetchGitStatus}
-        fetchSecrets={fetchSecrets}
-        fetchPluginStore={fetchPluginStore}
-      />
+    <div className="flex h-screen bg-zinc-950 text-zinc-100 selection:bg-indigo-500/30 overflow-hidden relative" style={{ fontFamily: config?.theme?.web?.fontFamily || 'Inter, sans-serif' }}>
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar Container */}
+      <div className={`fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:flex shrink-0`}>
+        <Sidebar 
+          activeTab={activeTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab);
+            setIsSidebarOpen(false);
+          }}
+          config={config}
+          fetchAgents={fetchAgents}
+          fetchHistory={fetchHistory}
+          fetchSkills={fetchSkills}
+          fetchFiles={fetchFiles}
+          fetchMcpData={fetchMcpData}
+          fetchGitStatus={fetchGitStatus}
+          fetchSecrets={fetchSecrets}
+          fetchPluginStore={fetchPluginStore}
+        />
+      </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden h-screen">
         <Header 
           activeTab={activeTab}
           theme={theme}
@@ -1235,14 +1306,17 @@ export default function App() {
           setIsCreatingSkill={setIsCreatingSkill}
           setIsSettingsOpen={setIsSettingsOpen}
           config={config}
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
         />
 
-        <main className="flex-1 flex flex-col min-w-0 bg-zinc-950">
+        <main className="flex-1 min-w-0 bg-zinc-950 overflow-y-auto custom-scrollbar relative">
           <SystemStatusBar 
             config={config}
             agents={agents}
           />
-          <AnimatePresence mode="wait">
+          <div className="h-full">
+            <AnimatePresence mode="wait">
             {activeTab === 'terminal' && (
               <TerminalPage 
                 viewMode={viewMode}
@@ -1335,7 +1409,7 @@ export default function App() {
 
             {activeTab === 'timeline' && (
               <TimelinePage 
-                events={[]}
+                events={events}
                 setActiveTab={setActiveTab}
               />
             )}
@@ -1403,7 +1477,7 @@ export default function App() {
                 plugins={pluginStore}
                 fetchPluginStore={fetchPluginStore}
                 isPluginsLoading={false}
-                handleInstallPlugin={() => {}}
+                handleInstallPlugin={handleInstallPlugin}
               />
             )}
 
@@ -1465,6 +1539,7 @@ export default function App() {
               />
             )}
           </AnimatePresence>
+          </div>
         </main>
       </div>
 

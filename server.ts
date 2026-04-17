@@ -26,13 +26,31 @@ const PROJECT_ROOT = process.cwd();
 
 // SSE Clients for real-time sync
 let sseClients: any[] = [];
+const TIMELINE_FILE = path.join(os.homedir(), '.mimocode', 'timeline.json');
 
 function broadcast(data: any) {
   sseClients.forEach(client => client.res.write(`data: ${JSON.stringify(data)}\n\n`));
 }
 
+async function recordEvent(type: string, data: any) {
+  const event = { type, data, timestamp: new Date().toISOString() };
+  broadcast(event);
+  
+  try {
+    await fs.ensureDir(path.dirname(TIMELINE_FILE));
+    let timeline = [];
+    if (await fs.pathExists(TIMELINE_FILE)) {
+      try {
+        timeline = await fs.readJson(TIMELINE_FILE);
+      } catch (e) { timeline = []; }
+    }
+    timeline.unshift(event);
+    await fs.writeJson(TIMELINE_FILE, timeline.slice(0, 500), { spaces: 2 });
+  } catch (e) { console.error('Failed to record event:', e); }
+}
+
 export function emitEvent(type: string, data: any) {
-  broadcast({ type, data, timestamp: new Date().toISOString() });
+  recordEvent(type, data);
 }
 
 async function startServer() {
@@ -166,6 +184,7 @@ async function startServer() {
     try {
       await execAsync('git add .');
       await execAsync(`git commit -m "${message}"`);
+      emitEvent('git_commit', { message, timestamp: new Date().toISOString() });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -242,16 +261,6 @@ async function startServer() {
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
-  });
-
-  // Plugin Store Endpoints
-  app.get('/api/plugins/store', (req, res) => {
-    const store = [
-      { id: 'p1', name: 'Docker Manager', description: 'Manage containers and images', author: 'Mimocode', version: '1.0.0', url: 'https://github.com/mimocode/plugin-docker.git' },
-      { id: 'p2', name: 'AWS Helper', description: 'Tools for AWS Lambda and S3', author: 'Mimocode', version: '0.5.0', url: 'https://github.com/mimocode/plugin-aws.git' },
-      { id: 'p3', name: 'Code Reviewer', description: 'Automated PR reviews', author: 'Community', version: '1.2.1', url: 'https://github.com/community/plugin-review.git' }
-    ];
-    res.json(store);
   });
 
   // Secrets Manager Endpoints
@@ -582,6 +591,7 @@ async function startServer() {
     }
     try {
       await fs.writeFile(fullPath, content, 'utf-8');
+      emitEvent('file_save', { filePath, timestamp: new Date().toISOString() });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -597,8 +607,10 @@ async function startServer() {
     try {
       if (isDirectory) {
         await fs.ensureDir(fullPath);
+        emitEvent('directory_create', { path: relativePath, timestamp: new Date().toISOString() });
       } else {
         await fs.ensureFile(fullPath);
+        emitEvent('file_create', { path: relativePath, timestamp: new Date().toISOString() });
       }
       res.json({ success: true });
     } catch (e: any) {
@@ -651,6 +663,19 @@ async function startServer() {
   });
 
   // SSE Endpoint for real-time sync
+  app.get('/api/timeline', async (req, res) => {
+    try {
+      if (await fs.pathExists(TIMELINE_FILE)) {
+        const timeline = await fs.readJson(TIMELINE_FILE);
+        res.json(timeline);
+      } else {
+        res.json([]);
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get('/api/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -731,20 +756,84 @@ async function startServer() {
   });
 
   // Plugin Endpoints
-  app.get('/api/plugins/store', (req, res) => {
-    res.json([
-      { id: 'git-provider', name: 'Git Provider', description: 'Advanced Git integration for agents', author: 'Mimocode Team', version: '1.0.0', url: 'https://github.com/mimocode/plugin-git' },
-      { id: 'docker-manager', name: 'Docker Manager', description: 'Manage containers directly from agents', author: 'Mimocode Team', version: '0.8.0', url: 'https://github.com/mimocode/plugin-docker' },
-      { id: 'aws-cloud', name: 'AWS Cloud', description: 'Deploy and manage AWS resources', author: 'Mimocode Team', version: '1.2.1', url: 'https://github.com/mimocode/plugin-aws' },
-      { id: 'sql-explorer', name: 'SQL Explorer', description: 'Query and visualize databases', author: 'Mimocode Team', version: '1.1.0', url: 'https://github.com/mimocode/plugin-sql' }
-    ]);
+  const PLUGIN_STORE = [
+    { 
+      id: 'git-provider', 
+      name: 'Git Provider', 
+      description: 'Advanced Git integration for agents. Enables branch management, automated PR creation, and conflict resolution.', 
+      details: 'This plugin provides a robust set of Git tools for your agents. It allows them to understand repository history better and perform complex Git operations safely.',
+      author: 'Mimocode Team', 
+      version: '1.0.0', 
+      url: 'https://github.com/mimocode/plugin-git',
+      icon: 'git'
+    },
+    { 
+      id: 'docker-manager', 
+      name: 'Docker Manager', 
+      description: 'Manage containers directly from agents. Inspect images, monitor logs, and orchestration containers.', 
+      details: 'Give your agents the power to control Docker. They can build images, start services, and debug containerized applications without leaving the chat.',
+      author: 'Mimocode Team', 
+      version: '0.8.0', 
+      url: 'https://github.com/mimocode/plugin-docker',
+      icon: 'box'
+    },
+    { 
+      id: 'aws-cloud', 
+      name: 'AWS Cloud', 
+      description: 'Deploy and manage AWS resources including Lambda, S3, and EC2.', 
+      details: 'Seamless cloud integration. This plugin allows agents to provision infrastructure, upload files to S3 buckets, and trigger Lambda functions directly.',
+      author: 'Mimocode Team', 
+      version: '1.2.1', 
+      url: 'https://github.com/mimocode/plugin-aws',
+      icon: 'cloud'
+    },
+    { 
+      id: 'sql-explorer', 
+      name: 'SQL Explorer', 
+      description: 'Query and visualize databases. Supports PostgreSQL, MySQL, and SQLite.', 
+      details: 'Database introspection made easy. Your agents can explore schemas, run optimized queries, and help you analyze your data structure.',
+      author: 'Mimocode Team', 
+      version: '1.1.0', 
+      url: 'https://github.com/mimocode/plugin-sql',
+      icon: 'database'
+    }
+  ];
+
+  app.get('/api/plugins/store', async (req, res) => {
+    const pluginsDir = path.join(os.homedir(), '.mimocode', 'plugins');
+    const installed = [];
+    if (await fs.pathExists(pluginsDir)) {
+      const dirs = await fs.readdir(pluginsDir);
+      installed.push(...dirs);
+    }
+    
+    const store = PLUGIN_STORE.map(p => ({
+      ...p,
+      installed: installed.includes(p.id)
+    }));
+    res.json(store);
   });
 
   app.post('/api/plugins/install', async (req, res) => {
-    const { url } = req.body;
+    const { id } = req.body;
+    const plugin = PLUGIN_STORE.find(p => p.id === id);
+    if (!plugin) return res.status(404).json({ error: 'Plugin not found' });
+    
     try {
-      const { installPlugin } = await import('./src/cli/plugins');
-      const plugin = await installPlugin(url);
+      const pluginsDir = path.join(os.homedir(), '.mimocode', 'plugins');
+      const targetDir = path.join(pluginsDir, id);
+      await fs.ensureDir(targetDir);
+      
+      // Simulate installation by creating manifest
+      await fs.writeJson(path.join(targetDir, 'plugin.json'), {
+        id: plugin.id,
+        name: plugin.name,
+        version: plugin.version,
+        description: plugin.description,
+        tools: []
+      }, { spaces: 2 });
+
+      emitEvent('plugin_installed', { id, name: plugin.name });
       res.json({ success: true, plugin });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -752,7 +841,7 @@ async function startServer() {
   });
 
   app.get('/api/plugins/list', async (req, res) => {
-    const pluginsDir = path.join(PROJECT_ROOT, '.mimocode', 'plugins');
+    const pluginsDir = path.join(os.homedir(), '.mimocode', 'plugins');
     if (!await fs.pathExists(pluginsDir)) return res.json([]);
     const dirs = await fs.readdir(pluginsDir);
     const plugins = [];

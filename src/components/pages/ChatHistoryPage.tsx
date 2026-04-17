@@ -22,8 +22,9 @@ export function ChatHistoryPage({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full p-6 overflow-y-auto space-y-6"
+      className="p-6"
     >
+      <div className="max-w-4xl mx-auto pb-32 space-y-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-zinc-100">Full Conversation History</h3>
         <button 
@@ -84,6 +85,7 @@ export function ChatHistoryPage({
           ))}
         </div>
       )}
+      </div>
     </motion.div>
   );
 }
