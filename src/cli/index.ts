@@ -333,27 +333,41 @@ async function startMimocodeChat(config: Config) {
 
 const program = new Command();
 
-// Si des arguments sont passés (ex: skill run ...), ne pas lancer le chat interactif.
-// Le moteur d'exécution (engine) pourra traiter ces arguments via process.argv ou engine.process.
-program.action(async () => {
-  const args = process.argv.slice(2);
-  const config = await loadConfig();
-  
-  if (args.length > 0) {
-    // Si des arguments sont présents, on les traite comme une commande unique
-    const cmd = args.join(' ');
-    try {
-      await engine.process(cmd, (name) => {
-        // Optionnel : afficher le nom du tool/agent utilisé
-      });
-      process.exit(0);
-    } catch (e) {
-      console.error(e);
-      process.exit(1);
+program
+  .name('mimocode')
+  .description('Mimocode CLI - Local AI Software Engineering Agent')
+  .version('0.36.4')
+  .argument('[command...]', 'Command to execute (e.g., skill run <name>)')
+  .action(async (commandArgs: string[]) => {
+    const config = await loadConfig();
+    
+    if (commandArgs && commandArgs.length > 0) {
+      // Si des arguments sont présents, on les traite comme une commande unique
+      const cmd = commandArgs.join(' ');
+      
+      // Initialisation de l'engine avant traitement
+      await engine.init(process.cwd());
+      
+      const spinner = ora({ text: chalk.cyan(`Executing: ${cmd}...`), spinner: 'dots' }).start();
+      
+      try {
+        const response = await engine.process(cmd, (name) => {
+          spinner.text = chalk.yellow(`Using ${name}...`);
+        });
+        
+        spinner.stop();
+        console.log(`\n${chalk.hex('#6366f1')('✦')} Result:`);
+        console.log(await marked.parse(response.content));
+        process.exit(0);
+      } catch (e: any) {
+        spinner.stop();
+        console.error(chalk.red(`\nError: ${e.message}`));
+        process.exit(1);
+      }
+    } else {
+      // Sinon, lancer le mode interactif
+      await startMimocodeChat(config);
     }
-  } else {
-    // Sinon, lancer le mode interactif
-    await startMimocodeChat(config);
-  }
-});
+  });
+
 program.parse(process.argv);

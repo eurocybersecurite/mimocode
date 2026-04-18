@@ -73,17 +73,27 @@ export class MimocodeEngine {
     const sessionId = await getOrCreateSession(this.currentWorkspace);
     let messages = await getSessionMessages(sessionId);
     
-    // 1. Hierarchical Context
+    // 1. Hierarchical Context (MIMOCODE.md)
     const hContext = await this.getHierarchicalContext();
     if (hContext) {
       messages = [{ role: 'system', content: hContext }, ...messages];
     }
 
-    // 2. High-Level Reasoning (Prioritize over Skills for complex requests)
-    const analysis = await import('./orchestrator').then(m => m.analyzeComplexity(this.config!, input));
+    // 2. Fast Track for explicit commands
+    if (input.startsWith('skill run ') || input.startsWith('agents run ')) {
+      const response = await processUserInput(this.config!, input, onToolCall, signal);
+      await saveMessage(sessionId, 'user', input);
+      await saveMessage(sessionId, 'assistant', response);
+      return { content: response, toolsCalled: [] };
+    }
+
+    // 3. Smart Routing (only analyze if not an obvious small task)
+    const isObviousSimple = input.length < 50 && !input.toLowerCase().includes('create') && !input.toLowerCase().includes('refactor');
     
-    if (analysis.complexity === 'complex' || input.toLowerCase().includes('react') || input.toLowerCase().includes('app')) {
-       const response = await import('./orchestrator').then(m => m.processUserInput(
+    if (!isObviousSimple) {
+      // For complex requests, we use the orchestrator which might do more analysis
+      // but we try to keep it efficient.
+      const response = await import('./orchestrator').then(m => m.processUserInput(
         this.config!, 
         input, 
         onToolCall, 
@@ -94,7 +104,7 @@ export class MimocodeEngine {
       return { content: response, toolsCalled: [] };
     }
 
-    // 3. Fallback to skills or normal process
+    // 4. Default process
     const response = await processUserInput(
       this.config!, 
       input, 
@@ -107,7 +117,7 @@ export class MimocodeEngine {
 
     return {
       content: response,
-      toolsCalled: [] // Sera rempli par l'orchestrateur si nécessaire
+      toolsCalled: []
     };
   }
 

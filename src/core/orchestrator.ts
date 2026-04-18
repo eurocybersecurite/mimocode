@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { generatePlan, executePlan, PlanStep } from './planner';
 import { reportEvent } from './events';
+import { runSkill } from './skills';
 
 export interface ComplexityAnalysis {
   complexity: 'simple' | 'medium' | 'complex';
@@ -45,24 +46,45 @@ export async function processUserInput(
   onToolCall?: (name: string, args: any, result: string, error?: string) => Promise<void> | void,
   signal?: AbortSignal
 ): Promise<string> {
-  const trimmedInput = userInput.trim().toLowerCase();
+  const trimmedInput = userInput.trim();
+  const lowerInput = trimmedInput.toLowerCase();
   
-  // 1. FAST PATH: Simple greetings or very short messages
+  // 1. FAST PATH: Explicit Skill Execution (Direct Bypass)
+  if (lowerInput.startsWith('skill run ')) {
+    const skillName = trimmedInput.split(' ')[2];
+    const skillInput = trimmedInput.split(' ').slice(3).join(' ') || 'Execute the skill';
+    try {
+      return await runSkill(config, skillName, skillInput);
+    } catch (e: any) {
+      return `Error running skill: ${e.message}`;
+    }
+  }
+
+  // 2. FAST PATH: Explicit Agent Execution
+  if (lowerInput.startsWith('agents run ')) {
+    const agentName = trimmedInput.split(' ')[2];
+    const agentInput = trimmedInput.split(' ').slice(3).join(' ') || 'Please assist me';
+    const agents = await loadAgents(config);
+    const targetAgent = agents.find(a => a.name === agentName) || agents[0];
+    return await executeAgentWithVerification(config, targetAgent, [{ role: 'user', content: agentInput }], onToolCall, [], 2, signal);
+  }
+
+  // 3. FAST PATH: Simple greetings
   const simpleMessages = ['hi', 'hello', 'salut', 'bonjour', 'hey', 'ça va', 'test', 'test?'];
-  if (simpleMessages.includes(trimmedInput) || userInput.length < 3) {
+  if (simpleMessages.includes(lowerInput) || userInput.length < 3) {
     return await callLLM(config, [{ role: 'user', content: userInput }]);
   }
 
-  // 2. Analysis
+  // 4. Analysis
   const analysis = await analyzeComplexity(config, userInput);
   const agents = await loadAgents(config);
   const agentName = analysis.suggestedAgent || 'general';
   const agent = agents.find(a => a.name === agentName) || agents.find(a => a.name === 'mimocode') || agents[0];
 
-  // 3. Complex Task: Plan & Execute
-  if (analysis.complexity === 'complex' || userInput.toLowerCase().includes('improve') || userInput.toLowerCase().includes('améglioré')) {
+  // 5. Complex Task: Plan & Execute
+  if (analysis.complexity === 'complex' || lowerInput.includes('improve') || lowerInput.includes('améglioré')) {
     let enhancedInput = userInput;
-    if (userInput.toLowerCase().includes('improve') || userInput.toLowerCase().includes('améglioré')) {
+    if (lowerInput.includes('improve') || lowerInput.includes('améglioré')) {
       enhancedInput = `Scan project structure and key files first. Then: ${userInput}`;
     }
 
@@ -84,7 +106,7 @@ export async function processUserInput(
     return "Complex task completed successfully.";
   }
 
-  // 4. Normal Path: Single Agent
+  // 6. Normal Path: Single Agent
   const agentMdPath = path.join(config.agentDir, `${agent.name}.md`);
   let agentDocs = '';
   if (await fs.pathExists(agentMdPath)) {
