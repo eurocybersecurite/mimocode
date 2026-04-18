@@ -14,8 +14,8 @@ interface Agent {
 interface AgentsPageProps {
   agentSearchTerm: string;
   setAgentSearchTerm: (val: string) => void;
-  selectedTag: string | null;
-  setSelectedTag: (tag: string | null) => void;
+  selectedTag: string | undefined;
+  setSelectedTag: (tag: string | undefined) => void;
   allTags: string[];
   filteredAgents: Agent[];
   setEditingAgent: (agent: Agent) => void;
@@ -70,7 +70,7 @@ export function AgentsPage({
           <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Filter by Tag:</span>
           <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1">
             <button 
-              onClick={() => setSelectedTag(null)}
+              onClick={() => setSelectedTag(undefined)}
               className={`px-2 py-1 text-[10px] rounded-md transition-all ${!selectedTag ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
               All

@@ -219,7 +219,7 @@ export default function App() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [agentSearchTerm, setAgentSearchTerm] = useState('');
   const [historySearchTerm, setHistorySearchTerm] = useState('');
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | undefined>(undefined);
   const [config, setConfig] = useState<any | null>(null);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isModelsLoading, setIsModelsLoading] = useState(false);
