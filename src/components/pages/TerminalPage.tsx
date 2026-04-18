@@ -9,8 +9,8 @@ interface TerminalPageProps {
   terminalRef: React.RefObject<HTMLDivElement>;
   viewMode: 'split' | 'terminal' | 'rich';
   setViewMode: (mode: 'split' | 'terminal' | 'rich') => void;
-  richOutput: string;
-  setRichOutput: (val: string) => void;
+  richOutput: string | null;
+  setRichOutput: (val: string | null) => void;
 }
 
 export function TerminalPage({ 
