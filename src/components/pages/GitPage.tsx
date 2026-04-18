@@ -147,10 +147,11 @@ export function GitPage({
                 .then(() => { fetchGitStatus(); fetchLog(); })
                 .catch((err) => console.error(err));
             }}
-            className="p-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white transition-all shadow-lg shadow-indigo-500/20"
+            disabled={isCommitting}
+            className="p-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Push Changes"
           >
-            <ArrowUp size={18} />
+            {isCommitting ? <RefreshCw size={18} className="animate-spin" /> : <ArrowUp size={18} />}
           </button>
         </div>
       </div>
