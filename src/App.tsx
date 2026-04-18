@@ -923,10 +923,10 @@ export default function App() {
       // Auto-checkpoint
       await axios.post('/api/checkpoints');
 
-      // Prevent interactive commands in web terminal
-      const interactiveCommands = ['chat', 'agents run', 'agents create'];
-      if (interactiveCommands.some(c => cmd.includes(c)) && !cmd.includes('-y') && !cmd.includes('--interactive')) {
-        // We'll allow them but warn that they might be limited
+      // Intercepter les commandes Mimocode et les préfixer
+      let commandToExecute = cmd;
+      if (cmd.startsWith('skill ') || cmd.startsWith('agents ') || cmd.startsWith('plan ')) {
+        commandToExecute = `mimocode ${cmd}`;
       }
 
       let loadingInterval: any;
@@ -934,7 +934,7 @@ export default function App() {
       const spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
       
       term.write('\r\n\x1b[1;36m┌─ Mimocode CLI ───────────────────────────────────────────────────────────────┐\x1b[0m');
-      term.write(`\r\n\x1b[1;36m│\x1b[0m \x1b[1;33mExecuting:\x1b[0m ${cmd}`);
+      term.write(`\r\n\x1b[1;36m│\x1b[0m \x1b[1;33mExecuting:\x1b[0m ${commandToExecute}`);
       term.write('\r\n\x1b[1;36m└──────────────────────────────────────────────────────────────────────────────┘\x1b[0m');
       term.write('\r\n');
 
@@ -944,7 +944,7 @@ export default function App() {
       }, 80);
 
       const apiKey = import.meta.env.VITE_MIMOCODE_API_KEY;
-      const response = await axios.post('/api/exec', { command: cmd, apiKey });
+      const response = await axios.post('/api/exec', { command: commandToExecute, apiKey });
       
       clearInterval(loadingInterval);
       // Clear "Processing..." line
