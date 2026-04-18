@@ -391,4 +391,4 @@ export function GitPage({
       </div>
     </motion.div>
   );
-}
+} 

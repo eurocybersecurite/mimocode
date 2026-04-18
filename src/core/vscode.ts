@@ -5,6 +5,15 @@ export async function setupVSCode() {
   const vscodeDir = path.join(process.cwd(), '.vscode');
   await fs.ensureDir(vscodeDir);
 
+  // Backup existing files if they exist
+  const filesToBackup = ['tasks.json', 'launch.json', 'extensions.json'];
+  for (const file of filesToBackup) {
+    const filePath = path.join(vscodeDir, file);
+    if (await fs.pathExists(filePath)) {
+      await fs.copy(filePath, `${filePath}.bak-${Date.now()}`);
+    }
+  }
+
   const tasks = {
     version: "2.0.0",
     tasks: [
@@ -69,11 +78,9 @@ export async function setupVSCode() {
   await fs.writeJson(path.join(vscodeDir, 'launch.json'), launch, { spaces: 2 });
   await fs.writeJson(path.join(vscodeDir, 'extensions.json'), extensions, { spaces: 2 });
 
-  return "VS Code configuration (tasks, launch, extensions) generated in .vscode/";
+  return "VS Code integration files successfully updated. Existing configurations have been backed up.";
 }
 
 export async function attachVSCode() {
-  // This would typically involve setting up a websocket or similar
-  // For now, we'll return the connection details for the user to use
   return "VS Code Attach: Use the 'mimocode: attach to server' launch configuration (Port 9229).";
 }
