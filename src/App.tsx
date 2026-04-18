@@ -1316,7 +1316,7 @@ export default function App() {
                 viewMode={viewMode}
                 setViewMode={setViewMode}
                 terminalRef={terminalRef}
-                richOutput={richOutput}
+                richOutput={richOutput} 
                 setRichOutput={setRichOutput}
               />
             )}
