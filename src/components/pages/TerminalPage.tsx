@@ -17,7 +17,8 @@ export function TerminalPage({
   terminalRef, 
   viewMode, 
   setViewMode, 
-  richOutput 
+  richOutput,
+  setRichOutput
 }: TerminalPageProps) {
   return (
     <motion.div 
