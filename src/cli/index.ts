@@ -332,8 +332,28 @@ async function startMimocodeChat(config: Config) {
 }
 
 const program = new Command();
+
+// Si des arguments sont passés (ex: skill run ...), ne pas lancer le chat interactif.
+// Le moteur d'exécution (engine) pourra traiter ces arguments via process.argv ou engine.process.
 program.action(async () => {
+  const args = process.argv.slice(2);
   const config = await loadConfig();
-  await startMimocodeChat(config);
+  
+  if (args.length > 0) {
+    // Si des arguments sont présents, on les traite comme une commande unique
+    const cmd = args.join(' ');
+    try {
+      await engine.process(cmd, (name) => {
+        // Optionnel : afficher le nom du tool/agent utilisé
+      });
+      process.exit(0);
+    } catch (e) {
+      console.error(e);
+      process.exit(1);
+    }
+  } else {
+    // Sinon, lancer le mode interactif
+    await startMimocodeChat(config);
+  }
 });
 program.parse(process.argv);
