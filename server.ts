@@ -637,6 +637,37 @@ async function startServer() {
     }
   });
 
+  app.post('/api/files/delete', async (req, res) => {
+    const { path: filePath } = req.body;
+    const fullPath = path.resolve(PROJECT_ROOT, filePath);
+    if (!fullPath.startsWith(PROJECT_ROOT)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    try {
+      await fs.remove(fullPath);
+      emitEvent('file_delete', { path: filePath, timestamp: new Date().toISOString() });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/files/move', async (req, res) => {
+    const { source, destination } = req.body;
+    const fullSource = path.resolve(PROJECT_ROOT, source);
+    const fullDest = path.resolve(PROJECT_ROOT, destination);
+    if (!fullSource.startsWith(PROJECT_ROOT) || !fullDest.startsWith(PROJECT_ROOT)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    try {
+      await fs.move(fullSource, fullDest, { overwrite: true });
+      emitEvent('file_move', { source, destination, timestamp: new Date().toISOString() });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post('/api/files/write', async (req, res) => {
     const { filePath, content } = req.body;
     const fullPath = path.resolve(PROJECT_ROOT, filePath);
