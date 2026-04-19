@@ -6,13 +6,18 @@ interface DeployPageProps {
   handleDeploy: () => void;
   isDeploying: boolean;
   deployStatus: any;
+  config: any;
 }
 
 export function DeployPage({
   handleDeploy,
   isDeploying,
-  deployStatus
+  deployStatus,
+  config
 }: DeployPageProps) {
+  const repoUrl = config?.githubRepo || 'https://github.com/eurocybersecurite/mimocode.git';
+  const displayRepo = repoUrl.replace('https://github.com/', '');
+
   return (
     <div className="max-w-2xl mx-auto py-12">
       <div className="text-center mb-12">
@@ -37,7 +42,7 @@ export function DeployPage({
             </div>
             <div className="text-left">
               <h3 className="font-bold text-zinc-100">GitHub Deployment</h3>
-              <p className="text-sm text-zinc-500">eurocybersecurite/mimocode.git</p>
+              <p className="text-sm text-zinc-500">{displayRepo}</p>
             </div>
           </div>
           {isDeploying ? (

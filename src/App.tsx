@@ -1433,6 +1433,7 @@ export default function App() {
                 handleDeploy={handleDeploy}
                 isDeploying={isDeploying}
                 deployStatus={deployStatus}
+                config={config}
               />
             )}
 
