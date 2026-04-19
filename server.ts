@@ -23,6 +23,7 @@ import { engine } from './src/core/engine';
 dotenv.config();
 
 const execAsync = promisify(exec);
+const INTERNAL_ROOT = process.cwd();
 let PROJECT_ROOT = process.cwd();
 
 // SSE Clients for real-time sync
@@ -161,7 +162,7 @@ async function startServer() {
     if (!q) return res.json([]);
     try {
       // Use grep to search for the query in the project
-      const { stdout } = await execAsync(`grep -rI "${q}" . --exclude-dir={node_modules,dist,.git} || true`);
+      const { stdout } = await execAsync(`grep -rI "${q}" . --exclude-dir={node_modules,dist,.git} || true`, { cwd: PROJECT_ROOT });
       const lines = stdout.split('\n').filter(l => l.trim());
       const results = lines.map(line => {
         const [filePath, ...contentParts] = line.split(':');
@@ -177,7 +178,7 @@ async function startServer() {
   // Git Endpoints
   app.get('/api/git/status', async (req, res) => {
     try {
-      const { stdout } = await execAsync('git status --porcelain');
+      const { stdout } = await execAsync('git status --porcelain', { cwd: PROJECT_ROOT });
       const lines = stdout.split('\n').filter(l => l.trim());
       const status = lines.map(line => {
         const code = line.substring(0, 2);
@@ -194,7 +195,7 @@ async function startServer() {
     const { filePath } = req.query;
     try {
       const cmd = filePath ? `git diff "${filePath}"` : 'git diff';
-      const { stdout } = await execAsync(cmd);
+      const { stdout } = await execAsync(cmd, { cwd: PROJECT_ROOT });
       res.json({ diff: stdout });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -207,8 +208,8 @@ async function startServer() {
     try {
       const msgPath = path.join(os.tmpdir(), `mimocode-commit-${Date.now()}.txt`);
       await fs.writeFile(msgPath, message);
-      await execAsync('git add .');
-      await execAsync(`git commit -F "${msgPath}"`);
+      await execAsync('git add .', { cwd: PROJECT_ROOT });
+      await execAsync(`git commit -F "${msgPath}"`, { cwd: PROJECT_ROOT });
       await fs.remove(msgPath);
       emitEvent('git_commit', { message, timestamp: new Date().toISOString() });
       res.json({ success: true });
@@ -220,7 +221,7 @@ async function startServer() {
   app.post('/api/git/add', async (req, res) => {
     const { files = '.' } = req.body;
     try {
-      await execAsync(`git add ${files}`);
+      await execAsync(`git add ${files}`, { cwd: PROJECT_ROOT });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -232,11 +233,11 @@ async function startServer() {
       const config = await loadConfig();
       const repoUrl = config.githubRepo || 'https://github.com/eurocybersecurite/mimocode.git';
       try {
-        await execAsync('git remote get-url origin');
+        await execAsync('git remote get-url origin', { cwd: PROJECT_ROOT });
       } catch (e) {
-        await execAsync(`git remote add origin ${repoUrl}`);
+        await execAsync(`git remote add origin ${repoUrl}`, { cwd: PROJECT_ROOT });
       }
-      await execAsync('git push -u origin HEAD');
+      await execAsync('git push -u origin HEAD', { cwd: PROJECT_ROOT });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -245,7 +246,7 @@ async function startServer() {
 
   app.get('/api/git/log', async (req, res) => {
     try {
-      const { stdout } = await execAsync('git log -n 20 --pretty=format:"%h|%an|%ar|%s"');
+      const { stdout } = await execAsync('git log -n 20 --pretty=format:"%h|%an|%ar|%s"', { cwd: PROJECT_ROOT });
       const commits = stdout.split('\n').filter(l => l.trim()).map(line => {
         const [hash, author, date, message] = line.split('|');
         return { hash, author, date, message };
@@ -259,7 +260,7 @@ async function startServer() {
   app.post('/api/git/stage', async (req, res) => {
     const { filePath } = req.body;
     try {
-      await execAsync(`git add "${filePath}"`);
+      await execAsync(`git add "${filePath}"`, { cwd: PROJECT_ROOT });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -269,7 +270,7 @@ async function startServer() {
   app.post('/api/git/unstage', async (req, res) => {
     const { filePath } = req.body;
     try {
-      await execAsync(`git reset HEAD "${filePath}"`);
+      await execAsync(`git reset HEAD "${filePath}"`, { cwd: PROJECT_ROOT });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -279,7 +280,7 @@ async function startServer() {
   app.post('/api/git/discard', async (req, res) => {
     const { filePath } = req.body;
     try {
-      await execAsync(`git checkout -- "${filePath}"`);
+      await execAsync(`git checkout -- "${filePath}"`, { cwd: PROJECT_ROOT });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -288,7 +289,7 @@ async function startServer() {
 
   app.get('/api/git/branches', async (req, res) => {
     try {
-      const { stdout } = await execAsync('git branch -a');
+      const { stdout } = await execAsync('git branch -a', { cwd: PROJECT_ROOT });
       const branches = stdout.split('\n').filter(l => l.trim()).map(l => {
         const isCurrent = l.startsWith('*');
         const name = l.replace('*', '').trim();
@@ -303,7 +304,7 @@ async function startServer() {
   app.post('/api/git/checkout', async (req, res) => {
     const { branch } = req.body;
     try {
-      await execAsync(`git checkout ${branch}`);
+      await execAsync(`git checkout ${branch}`, { cwd: PROJECT_ROOT });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -313,7 +314,7 @@ async function startServer() {
   app.post('/api/git/branch/create', async (req, res) => {
     const { name } = req.body;
     try {
-      await execAsync(`git checkout -b ${name}`);
+      await execAsync(`git checkout -b ${name}`, { cwd: PROJECT_ROOT });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -323,7 +324,7 @@ async function startServer() {
   app.delete('/api/git/branch/:name', async (req, res) => {
     const { name } = req.params;
     try {
-      await execAsync(`git branch -D ${name}`);
+      await execAsync(`git branch -D ${name}`, { cwd: PROJECT_ROOT });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -333,7 +334,7 @@ async function startServer() {
   app.post('/api/git/version/bump', async (req, res) => {
     const { type } = req.body;
     try {
-      await execAsync(`npm version ${type} --no-git-tag-version`);
+      await execAsync(`npm version ${type} --no-git-tag-version`, { cwd: PROJECT_ROOT });
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -1049,7 +1050,8 @@ async function startServer() {
       }
       res.json(models);
     } catch (e: any) {
-      console.error(`Error fetching models: ${e.message}`);
+      const config = await loadConfig().catch(() => ({ runtime: 'unknown', endpoint: 'unknown' }));
+      console.error(`Error fetching models (${config.runtime} @ ${config.endpoint}): ${e.message}`);
       res.json([]); // Return empty list on failure instead of 500 to keep UI stable
     }
   });
@@ -1080,7 +1082,7 @@ async function startServer() {
       res.status(500).json({ error: e.message });
     }
   });
-
+ 
   // API to execute mimocode commands
   app.post('/api/exec', (req, res) => {
     const { command, apiKey } = req.body;
@@ -1103,11 +1105,12 @@ async function startServer() {
         }
         return arg;
       });
-      child = spawn('npx', ['tsx', 'src/cli/index.ts', ...cleanArgs], {
+      child = spawn('npx', ['tsx', path.join(INTERNAL_ROOT, 'src/cli/index.ts'), ...cleanArgs], {
+        cwd: PROJECT_ROOT,
         env: { ...process.env, MIMOCODE_NON_INTERACTIVE: 'true' }
       });
     } else {
-      child = spawn(command, { shell: true, env: process.env });
+      child = spawn(command, { shell: true, cwd: PROJECT_ROOT, env: process.env });
     }
     
     let stdout = '';
