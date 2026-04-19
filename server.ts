@@ -544,8 +544,8 @@ async function startServer() {
   // Checkpoints Endpoints
   app.post('/api/checkpoints', async (req, res) => {
     const config = await loadConfig();
-    const path = await createCheckpoint(config);
-    res.json({ path });
+    const cpPath = await createCheckpoint(config);
+    res.json({ path: cpPath });
   });
 
   app.post('/api/restore', async (req, res) => {
@@ -684,18 +684,18 @@ async function startServer() {
   });
 
   app.post('/api/files/create', async (req, res) => {
-    const { path: relativePath, isDirectory } = req.body;
-    const fullPath = path.resolve(PROJECT_ROOT, relativePath);
+    const { path: relPath, isDirectory } = req.body;
+    const fullPath = path.resolve(PROJECT_ROOT, relPath);
     if (!fullPath.startsWith(PROJECT_ROOT)) {
       return res.status(403).json({ error: 'Access denied' });
     }
     try {
       if (isDirectory) {
         await fs.ensureDir(fullPath);
-        emitEvent('directory_create', { path: relativePath, timestamp: new Date().toISOString() });
+        emitEvent('directory_create', { path: relPath, timestamp: new Date().toISOString() });
       } else {
         await fs.ensureFile(fullPath);
-        emitEvent('file_create', { path: relativePath, timestamp: new Date().toISOString() });
+        emitEvent('file_create', { path: relPath, timestamp: new Date().toISOString() });
       }
       res.json({ success: true });
     } catch (e: any) {
@@ -1106,19 +1106,23 @@ async function startServer() {
 
   // API to check remote status
   app.get('/api/remote/status', (req, res) => {
-    const apiKey = req.query.apiKey as string;
-    const serverApiKey = process.env.MIMOCODE_API_KEY;
+    try {
+      const apiKey = req.query.apiKey as string;
+      const serverApiKey = process.env.MIMOCODE_API_KEY;
 
-    if (serverApiKey && apiKey !== serverApiKey) {
-      return res.status(401).json({ error: 'Unauthorized: Invalid API key.' });
+      if (serverApiKey && apiKey !== serverApiKey) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid API key.' });
+      }
+
+      res.json({
+        status: 'online',
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
-
-    res.json({
-      status: 'online',
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      timestamp: new Date().toISOString(),
-    });
   });
 
   // API to download files from remote server

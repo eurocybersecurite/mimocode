@@ -12,6 +12,7 @@ interface FilesPageProps {
   fetchFiles: (path: string) => void;
   readFile: (path: string) => void;
   activeFile: string | null;
+  setActiveFile: (path: string | null) => void;
   fileTree: any[];
   isCreatingFile: boolean;
   setIsCreatingFile: (val: boolean) => void;
@@ -50,6 +51,7 @@ export function FilesPage({
   fetchFiles,
   readFile,
   activeFile,
+  setActiveFile,
   fileTree,
   isCreatingFile,
   setIsCreatingFile,
