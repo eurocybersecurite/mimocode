@@ -169,7 +169,11 @@ export default function App() {
       const res = await axios.post('/api/workspace', { path });
       setWorkspace(res.data.path);
       fetchFiles(); // Refresh file list for new workspace
-    } catch (e) { console.error(e); }
+      alert(`Workspace changed to: ${res.data.path}`);
+    } catch (e) { 
+      console.error(e);
+      alert('Failed to change workspace.');
+    }
   };
 
   useEffect(() => {
@@ -391,9 +395,11 @@ export default function App() {
     try {
       await axios.post('/api/config', config);
       setIsSaving(false);
+      alert('Settings saved successfully!');
     } catch (e) {
       console.error(e);
       setIsSaving(false);
+      alert('Failed to save settings.');
     }
   };
 
@@ -1530,11 +1536,11 @@ export default function App() {
                 setConfig={setConfig}
                 saveConfig={saveConfig}
                 isSaving={isSaving}
-                handleHealSystem={() => {}}
-                handleImproveSystem={() => {}}
-                handleRestoreLatest={() => {}}
-                handleRagClear={() => {}}
-                handleVSCodeSetup={() => {}}
+                handleHealSystem={handleHealSystem}
+                handleImproveSystem={handleImproveSystem}
+                handleRestoreLatest={handleRestoreLatest}
+                handleRagClear={handleRagClear}
+                handleVSCodeSetup={handleVSCodeSetup}
                 isSystemActionLoading={isSystemActionLoading}
                 workspace={workspace}
                 updateWorkspace={updateWorkspace}
