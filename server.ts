@@ -23,7 +23,7 @@ import { engine } from './src/core/engine';
 dotenv.config();
 
 const execAsync = promisify(exec);
-const PROJECT_ROOT = process.cwd();
+let PROJECT_ROOT = process.cwd();
 
 // SSE Clients for real-time sync
 let sseClients: any[] = [];
@@ -59,6 +59,27 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // API to manage workspace/directory
+  app.get('/api/workspace', (req, res) => {
+    res.json({ path: PROJECT_ROOT });
+  });
+
+  app.post('/api/workspace', async (req, res) => {
+    const { path: newPath } = req.body;
+    if (!newPath) return res.status(400).json({ error: 'Path is required' });
+    
+    try {
+      const resolvedPath = path.resolve(newPath);
+      await fs.ensureDir(resolvedPath);
+      PROJECT_ROOT = resolvedPath;
+      console.log(`Workspace changed to: ${PROJECT_ROOT}`);
+      emitEvent('workspace_change', { path: PROJECT_ROOT });
+      res.json({ success: true, path: PROJECT_ROOT });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
 
   // API to get list of agents
   app.get('/api/agents', async (req, res) => {
@@ -208,10 +229,12 @@ async function startServer() {
 
   app.post('/api/git/push', async (req, res) => {
     try {
+      const config = await loadConfig();
+      const repoUrl = config.githubRepo || 'https://github.com/eurocybersecurite/mimocode.git';
       try {
         await execAsync('git remote get-url origin');
       } catch (e) {
-        await execAsync('git remote add origin https://github.com/eurocybersecurite/mimocode.git');
+        await execAsync(`git remote add origin ${repoUrl}`);
       }
       await execAsync('git push -u origin HEAD');
       res.json({ success: true });
@@ -977,9 +1000,12 @@ async function startServer() {
       // In this environment we simulate the push success
       // await execAsync('git push origin main', { cwd: PROJECT_ROOT });
       
+      const config = await loadConfig();
+      const repoUrl = config.githubRepo || 'https://github.com/eurocybersecurite/mimocode.git';
+
       setTimeout(() => {
-        emitEvent('deploy_success', { url: 'https://github.com/eurocybersecurite/mimocode.git', version: localVersion });
-        res.json({ success: true, url: 'https://github.com/eurocybersecurite/mimocode.git', version: localVersion });
+        emitEvent('deploy_success', { url: repoUrl, version: localVersion });
+        res.json({ success: true, url: repoUrl, version: localVersion });
       }, 2000);
     } catch (e: any) {
       emitEvent('deploy_error', { error: e.message });

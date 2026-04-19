@@ -13,6 +13,8 @@ interface SettingsPageProps {
   handleRagClear: () => void;
   handleVSCodeSetup: () => void;
   isSystemActionLoading: boolean;
+  workspace: string;
+  updateWorkspace: (path: string) => void;
 }
 
 export function SettingsPage({
@@ -25,8 +27,16 @@ export function SettingsPage({
   handleRestoreLatest,
   handleRagClear,
   handleVSCodeSetup,
-  isSystemActionLoading
+  isSystemActionLoading,
+  workspace,
+  updateWorkspace
 }: SettingsPageProps) {
+  const [localWorkspace, setLocalWorkspace] = React.useState(workspace);
+
+  React.useEffect(() => {
+    setLocalWorkspace(workspace);
+  }, [workspace]);
+
   return (
     <motion.div 
       key="settings"
@@ -50,10 +60,50 @@ export function SettingsPage({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Workspace & Project */}
+          <div className="space-y-6">
+            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+              <Globe size={14} className="text-indigo-500" /> Workspace & Project
+            </h3>
+            <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Active Workspace Path</label>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    value={localWorkspace} 
+                    onChange={(e) => setLocalWorkspace(e.target.value)}
+                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-sm font-mono text-zinc-300 focus:outline-none focus:border-indigo-500/50"
+                    placeholder="/path/to/your/project"
+                  />
+                  <button 
+                    onClick={() => updateWorkspace(localWorkspace)}
+                    className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-[10px] font-bold transition-all border border-zinc-700"
+                  >
+                    Apply
+                  </button>
+                </div>
+                <p className="text-[9px] text-zinc-600">This directory will be used for all file operations and code generation.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">GitHub Repository URL</label>
+                <input 
+                  type="text" 
+                  value={config.githubRepo || ''} 
+                  onChange={(e) => setConfig({ ...config, githubRepo: e.target.value })}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-sm font-mono text-zinc-300 focus:outline-none focus:border-indigo-500/50"
+                  placeholder="https://github.com/user/repo.git"
+                />
+                <p className="text-[9px] text-zinc-600">The destination for "Deploy" and "Git Push" operations.</p>
+              </div>
+            </div>
+          </div>
+
           {/* Visual Theme */}
           <div className="space-y-6">
             <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-              <Zap size={14} className="text-indigo-500" /> Visual Identity
+              <Zap size={14} className="text-yellow-500" /> Visual Identity
             </h3>
             <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl space-y-6">
               <div className="space-y-2">
@@ -87,69 +137,69 @@ export function SettingsPage({
               </div>
             </div>
           </div>
+        </div>
 
-          {/* System Maintenance */}
-          <div className="space-y-6">
-            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-              <Activity size={14} className="text-green-500" /> Maintenance & Health
-            </h3>
-            <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl space-y-4">
-              <button 
-                onClick={handleHealSystem}
-                disabled={isSystemActionLoading}
-                className="w-full flex items-center justify-between p-4 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 rounded-2xl transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
-                    <Activity size={16} />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-bold text-zinc-200">System Heal</div>
-                    <div className="text-[9px] text-zinc-500">Fix common workspace issues</div>
-                  </div>
+        {/* System Maintenance */}
+        <div className="space-y-6">
+          <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+            <Activity size={14} className="text-green-500" /> Maintenance & Health
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button 
+              onClick={handleHealSystem}
+              disabled={isSystemActionLoading}
+              className="flex items-center justify-between p-4 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 rounded-2xl transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
+                  <Activity size={16} />
                 </div>
-                <RefreshCw size={14} className={`text-zinc-600 group-hover:text-green-500 transition-all ${isSystemActionLoading ? 'animate-spin' : ''}`} />
-              </button>
-              <button 
-                onClick={handleImproveSystem}
-                disabled={isSystemActionLoading}
-                className="w-full flex items-center justify-between p-4 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 rounded-2xl transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                    <Zap size={16} />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-bold text-zinc-200">Auto-Improve</div>
-                    <div className="text-[9px] text-zinc-500">Optimize code and structure</div>
-                  </div>
+                <div className="text-left">
+                  <div className="text-xs font-bold text-zinc-200">System Heal</div>
+                  <div className="text-[9px] text-zinc-500">Fix workspace issues</div>
                 </div>
-                <RefreshCw size={14} className={`text-zinc-600 group-hover:text-indigo-500 transition-all ${isSystemActionLoading ? 'animate-spin' : ''}`} />
-              </button>
-              <button 
-                onClick={handleRagClear}
-                disabled={isSystemActionLoading}
-                className="w-full flex items-center justify-between p-4 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 rounded-2xl transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
-                    <Trash2 size={16} />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-bold text-zinc-200">Clear RAG Cache</div>
-                    <div className="text-[9px] text-zinc-500">Reset agent memory index</div>
-                  </div>
+              </div>
+              <RefreshCw size={14} className={`text-zinc-600 group-hover:text-green-500 transition-all ${isSystemActionLoading ? 'animate-spin' : ''}`} />
+            </button>
+            <button 
+              onClick={handleImproveSystem}
+              disabled={isSystemActionLoading}
+              className="flex items-center justify-between p-4 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 rounded-2xl transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                  <Zap size={16} />
                 </div>
-                <RefreshCw size={14} className={`text-zinc-600 group-hover:text-red-500 transition-all ${isSystemActionLoading ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
+                <div className="text-left">
+                  <div className="text-xs font-bold text-zinc-200">Auto-Improve</div>
+                  <div className="text-[9px] text-zinc-500">Optimize structure</div>
+                </div>
+              </div>
+              <RefreshCw size={14} className={`text-zinc-600 group-hover:text-indigo-500 transition-all ${isSystemActionLoading ? 'animate-spin' : ''}`} />
+            </button>
+            <button 
+              onClick={handleRagClear}
+              disabled={isSystemActionLoading}
+              className="flex items-center justify-between p-4 bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 rounded-2xl transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
+                  <Trash2 size={16} />
+                </div>
+                <div className="text-left">
+                  <div className="text-xs font-bold text-zinc-200">Clear Cache</div>
+                  <div className="text-[9px] text-zinc-500">Reset agent memory</div>
+                </div>
+              </div>
+              <RefreshCw size={14} className={`text-zinc-600 group-hover:text-red-500 transition-all ${isSystemActionLoading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
 
         {/* Advanced Integrations */}
         <div className="space-y-6">
           <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-            <Globe size={14} className="text-yellow-500" /> Advanced Integrations
+            <Settings size={14} className="text-zinc-500" /> Advanced Integrations
           </h3>
           <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl flex items-center justify-between">
             <div className="flex items-center gap-6">

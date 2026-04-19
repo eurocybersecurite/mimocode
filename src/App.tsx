@@ -157,8 +157,24 @@ export default function App() {
     } catch (e) { console.error(e); }
   };
 
+  const fetchWorkspace = async () => {
+    try {
+      const res = await axios.get('/api/workspace');
+      setWorkspace(res.data.path);
+    } catch (e) { console.error(e); }
+  };
+
+  const updateWorkspace = async (path: string) => {
+    try {
+      const res = await axios.post('/api/workspace', { path });
+      setWorkspace(res.data.path);
+      fetchFiles(); // Refresh file list for new workspace
+    } catch (e) { console.error(e); }
+  };
+
   useEffect(() => {
     fetchConfig();
+    fetchWorkspace();
     fetchAgents();
     fetchHistory();
     fetchSkills();
@@ -238,6 +254,7 @@ export default function App() {
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | undefined>(undefined);
   const [config, setConfig] = useState<any | null>(null);
+  const [workspace, setWorkspace] = useState<string>('');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isModelsLoading, setIsModelsLoading] = useState(false);
   
@@ -758,12 +775,8 @@ export default function App() {
     term.open(terminalRef.current);
     fitAddon.fit();
 
-    term.writeln('\x1b[1;34m┌──────────────────────────────────────────────────────────────────────────────┐\x1b[0m');
-    term.writeln('\x1b[1;34m│                                                                              │\x1b[0m');
-    term.writeln('\x1b[1;34m│   \x1b[1;37mWelcome to \x1b[1;35mMimocode CLI v0.36.4\x1b[1;34m                                            │\x1b[0m');
-    term.writeln('\x1b[1;34m│   \x1b[1;32mType "mimocode help" to see available commands.\x1b[1;34m                            │\x1b[0m');
-    term.writeln('\x1b[1;34m│                                                                              │\x1b[0m');
-    term.writeln('\x1b[1;34m└──────────────────────────────────────────────────────────────────────────────┘\x1b[0m');
+    term.writeln('\x1b[1;35mWelcome to Mimocode CLI v0.36.4\x1b[0m');
+    term.writeln('\x1b[1;32mType "mimocode help" to see available commands.\x1b[0m');
     term.write('\r\n$ ');
 
     xtermRef.current = term;
@@ -948,9 +961,7 @@ export default function App() {
       if (stdout) {
         // Simple structured output for large results or code blocks
         if (stdout.includes('```') || stdout.includes('---') || stdout.length > 500) {
-          term.write('\r\n\x1b[1;34m┌──────────────────────────────────────────────────────────────────────────────┐\x1b[0m');
           term.write('\r\n' + stdout.replace(/\n/g, '\r\n'));
-          term.write('\r\n\x1b[1;34m└──────────────────────────────────────────────────────────────────────────────┘\x1b[0m');
           setRichOutput(stdout);
         } else {
           term.write('\r\n' + stdout.replace(/\n/g, '\r\n'));
@@ -1524,6 +1535,8 @@ export default function App() {
                 handleRagClear={() => {}}
                 handleVSCodeSetup={() => {}}
                 isSystemActionLoading={isSystemActionLoading}
+                workspace={workspace}
+                updateWorkspace={updateWorkspace}
               />
             )}
           </AnimatePresence>

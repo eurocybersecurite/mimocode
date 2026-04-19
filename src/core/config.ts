@@ -23,6 +23,7 @@ export interface Config {
   topP?: number;
   topK?: number;
   vscodePrompt?: boolean;
+  githubRepo?: string;
   mcpServers?: Array<{
     name: string;
     type: 'stdio' | 'http';
@@ -61,6 +62,7 @@ export const DEFAULT_CONFIG: Config = {
   temperature: 0.7,
   topP: 0.95,
   topK: 40,
+  githubRepo: 'https://github.com/eurocybersecurite/mimocode.git',
   mcpServers: [
     {
       "name": "filesystem",
