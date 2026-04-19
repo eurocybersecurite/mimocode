@@ -1005,20 +1005,26 @@ async function startServer() {
 
   // API to get available models from local backend
   app.get('/api/models', async (req, res) => {
-    const config = await loadConfig();
-    const { runtime, endpoint } = config;
     try {
+      const config = await loadConfig();
+      const { runtime, endpoint } = config;
+      
+      if (!runtime || !endpoint) {
+        return res.json([]);
+      }
+
       let models: string[] = [];
       if (runtime === 'ollama') {
         const response = await axios.get(`${endpoint}/api/tags`);
-        models = response.data.models.map((m: any) => m.name);
+        models = (response.data.models || []).map((m: any) => m.name);
       } else if (runtime === 'lmstudio' || runtime === 'llama-cpp' || runtime === 'mlx') {
         const response = await axios.get(`${endpoint}/v1/models`);
-        models = response.data.data.map((m: any) => m.id);
+        models = (response.data.data || []).map((m: any) => m.id);
       }
       res.json(models);
     } catch (e: any) {
-      res.status(500).json({ error: `Failed to fetch models from ${runtime}: ${e.message}` });
+      console.error(`Error fetching models: ${e.message}`);
+      res.json([]); // Return empty list on failure instead of 500 to keep UI stable
     }
   });
 

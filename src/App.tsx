@@ -165,11 +165,26 @@ export default function App() {
     fetchFiles();
     fetchMcpData();
     fetchGitStatus();
+    fetchGitBranches();
     fetchSecrets();
     fetchPluginStore();
     fetchDashboardMetrics();
     fetchTerminalHistory();
     fetchTimeline();
+    fetchPendingSkills();
+
+    const fetchRemoteStatus = async () => {
+      try {
+        const apiKey = import.meta.env.VITE_MIMOCODE_API_KEY;
+        const res = await axios.get('/api/remote/status', { params: { apiKey } });
+        setRemoteStatus(res.data);
+      } catch (e) {
+        setRemoteStatus(null);
+      }
+    };
+    fetchRemoteStatus();
+    const interval = setInterval(fetchRemoteStatus, 30000);
+    return () => clearInterval(interval);
   }, []);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [richOutput, setRichOutput] = useState<string | null>(null);
@@ -184,6 +199,8 @@ export default function App() {
   // Files State
   const [files, setFiles] = useState<any[]>([]);
   const [currentPath, setCurrentPath] = useState('.');
+  const currentPathRef = useRef(currentPath);
+  useEffect(() => { currentPathRef.current = currentPath; }, [currentPath]);
   const [openFiles, setOpenFiles] = useState<{path: string, content: string, originalContent: string, isDirty: boolean}[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState('');
@@ -265,7 +282,7 @@ export default function App() {
       if (data.type === 'tool_start' || data.type === 'tool_success' || data.type === 'tool_error') {
         // Auto-refresh files if a file tool was used
         if (['write_file', 'delete_file', 'create_project', 'create_directory'].includes(data.data.name)) {
-          fetchFiles(currentPath);
+          fetchFiles(currentPathRef.current);
         }
       }
 
@@ -322,7 +339,7 @@ export default function App() {
       }
     };
     return () => eventSource.close();
-  }, [currentPath]);
+  }, []);
   const fetchDashboardMetrics = async () => {
     try {
       const [agentsRes, historyRes, skillsRes, gitRes] = await Promise.all([
@@ -706,30 +723,6 @@ export default function App() {
     if (file) {
       readFile(file);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchAgents();
-    fetchHistory();
-    fetchConfig();
-    fetchSkills();
-    fetchPendingSkills();
-    fetchFiles();
-    fetchMcpData();
-    fetchGitStatus();
-    fetchGitBranches();
-    const fetchRemoteStatus = async () => {
-      try {
-        const apiKey = import.meta.env.VITE_MIMOCODE_API_KEY;
-        const res = await axios.get('/api/remote/status', { params: { apiKey } });
-        setRemoteStatus(res.data);
-      } catch (e) {
-        setRemoteStatus(null);
-      }
-    };
-    fetchRemoteStatus();
-    const interval = setInterval(fetchRemoteStatus, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

@@ -1,8 +1,8 @@
-import * as diff from 'diff';
+import { diffLines } from 'diff';
 import chalk from 'chalk';
 
 export function getDiff(oldContent: string, newContent: string, fileName: string): string {
-  const changes = diff.diffLines(oldContent, newContent);
+  const changes = diffLines(oldContent, newContent);
   let output = chalk.bold.blue(`📝 Changes in ${fileName}:\n`);
   output += chalk.dim(`┌${'─'.repeat(78)}┐\n`);
   
