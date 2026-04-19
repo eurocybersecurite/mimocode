@@ -427,7 +427,8 @@ async function startServer() {
     const updatedServer = req.body;
     try {
       const config = await loadConfig();
-      const index = (config.mcpServers || []).findIndex((s: any) => s.name === name);
+      if (!config.mcpServers) config.mcpServers = [];
+      const index = config.mcpServers.findIndex((s: any) => s.name === name);
       if (index !== -1) {
         config.mcpServers[index] = updatedServer;
         await saveConfig(config);
@@ -910,7 +911,7 @@ async function startServer() {
 
   app.get('/api/plugins/store', async (req, res) => {
     const pluginsDir = path.join(os.homedir(), '.mimocode', 'plugins');
-    const installed = [];
+    const installed: string[] = [];
     if (await fs.pathExists(pluginsDir)) {
       const dirs = await fs.readdir(pluginsDir);
       installed.push(...dirs);
@@ -1099,7 +1100,7 @@ async function startServer() {
     if (isMimocode) {
       const rawArgs = command.replace(/^mimocode\s+/, '');
       const argsMatch = rawArgs.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
-      const cleanArgs = argsMatch.map(arg => {
+      const cleanArgs = argsMatch.map((arg: string) => {
         if ((arg.startsWith('"') && arg.endsWith('"')) || (arg.startsWith("'") && arg.endsWith("'"))) {
           return arg.slice(1, -1);
         }
