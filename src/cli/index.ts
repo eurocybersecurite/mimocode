@@ -158,20 +158,24 @@ async function handleSlashCommand(input: string, config: Config) {
   }
 }
 
-async function startMimocodeChat(config: Config) {
+async function startMimocodeChat(config: Config, skipMenu = false) {
   await loadCLIHistory();
 
-  const { action } = await inquirer.prompt([{
-    type: 'list',
-    name: 'action',
-    message: 'Mimocode ready. What would you like to do?',
-    choices: [
-      { name: 'Start Chatting', value: 'chat' },
-      { name: 'Clear History', value: 'clear' },
-      { name: 'Run Setup', value: 'setup' },
-      { name: 'Exit', value: 'exit' }
-    ]
-  }]);
+  let action = 'chat';
+  if (!skipMenu) {
+    const res = await inquirer.prompt([{
+      type: 'list',
+      name: 'action',
+      message: 'Mimocode ready. What would you like to do?',
+      choices: [
+        { name: 'Start Chatting', value: 'chat' },
+        { name: 'Clear History', value: 'clear' },
+        { name: 'Run Setup', value: 'setup' },
+        { name: 'Exit', value: 'exit' }
+      ]
+    }]);
+    action = res.action;
+  }
 
   if (action === 'exit') process.exit(0);
   if (action === 'setup') {
@@ -388,19 +392,8 @@ program
           process.stdout.write('\n');
         }
         
-        // Au lieu de sortir immédiatement, demander si l'utilisateur veut continuer en chat
-        const { stay } = await inquirer.prompt([{
-          type: 'confirm',
-          name: 'stay',
-          message: 'Would you like to continue in interactive chat mode?',
-          default: false
-        }]);
-
-        if (stay) {
-          await startMimocodeChat(config);
-        } else {
-          process.exit(0);
-        }
+        // Transition automatique vers le mode interactif (ATC Style)
+        await startMimocodeChat(config, true);
       } catch (e: any) {
         spinner.stop();
         console.error(chalk.red(`\nError: ${e.message}`));
