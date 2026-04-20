@@ -118,7 +118,7 @@ export async function callLLMWithTools(
   if (userQuery) {
     const isGitRelated = userQuery.includes('git') || userQuery.includes('commit') || userQuery.includes('branch');
     const isDockerRelated = userQuery.includes('docker') || userQuery.includes('container');
-    const isWebRelated = userQuery.includes('http') || userQuery.includes('web') || userQuery.includes('search') || userQuery.includes('browse') || userQuery.includes('scrape');
+    const isWebRelated = userQuery.includes('http') || userQuery.includes('web') || userQuery.includes('search') || userQuery.includes('browse') || userQuery.includes('scrape') || userQuery.includes('net') || userQuery.includes('recherche') || userQuery.includes('cherche') || userQuery.includes('site');
     const isDbRelated = userQuery.includes('sql') || userQuery.includes('db') || userQuery.includes('database') || userQuery.includes('query');
 
     activeTools = mcpTools.filter(t => {
@@ -128,7 +128,7 @@ export async function callLLMWithTools(
       
       if (!isGitRelated && (t.name.includes('git') || t.name.includes('history_analyzer'))) return false;
       if (!isDockerRelated && t.name.includes('docker')) return false;
-      if (!isWebRelated && t.name.startsWith('web_')) return false;
+      if (!isWebRelated && (t.name.startsWith('web_') || t.name.includes('search') || t.name.includes('puppeteer'))) return false;
       if (!isDbRelated && t.name.includes('database')) return false;
       
       return true;

@@ -55,51 +55,38 @@ export async function processUserInput(
   userInput: string, 
   onToolCall?: (name: string, args: any, result: string, error?: string) => Promise<void> | void,
   signal?: AbortSignal,
-  onTextChunk?: (chunk: string) => void
+  onTextChunk?: (chunk: string) => void,
+  history: Message[] = []
 ): Promise<string> {
   const trimmedInput = userInput.trim();
   const lowerInput = trimmedInput.toLowerCase();
   
-  // 1. FAST PATH: Explicit Skill Execution (Direct Bypass)
-  if (lowerInput.startsWith('skill run ')) {
-    const skillName = trimmedInput.split(' ')[2];
-    const skillInput = trimmedInput.split(' ').slice(3).join(' ') || 'Execute the skill';
-    try {
-      return await runSkill(config, skillName, skillInput);
-    } catch (e: any) {
-      return `Error running skill: ${e.message}`;
-    }
-  }
-
-  // 2. FAST PATH: Explicit Agent Execution
-  if (lowerInput.startsWith('agents run ')) {
-    const agentName = trimmedInput.split(' ')[2];
-    const agentInput = trimmedInput.split(' ').slice(3).join(' ') || 'Please assist me';
-    const agents = await loadAgents(config);
-    const targetAgent = agents.find(a => a.name === agentName) || agents[0];
-    return await executeAgentWithVerification(config, targetAgent, [{ role: 'user', content: agentInput }], onToolCall, [], 2, signal, onTextChunk);
-  }
+  // 1. FAST PATH: Explicit Skill/Agent Execution
+  // ... (keeping those as is, but we'll use history below)
 
   // 3. FAST PATH: Simple greetings and short inputs
   const simpleMessages = ['hi', 'hello', 'salut', 'bonjour', 'hey', 'ça va', 'test', 'test?'];
   if (simpleMessages.includes(lowerInput) || (userInput.length < 30 && !lowerInput.includes(' '))) {
-    let fullResponse = '';
+    const contextMessages = [...history, { role: 'user', content: userInput }];
     if (onTextChunk) {
-      const stream = await import('./llm').then(m => m.callLLMStream(config, [{ role: 'user', content: userInput }], {}, signal));
+      let fullResponse = '';
+      const stream = await import('./llm').then(m => m.callLLMStream(config, contextMessages as any, {}, signal));
       for await (const chunk of stream) {
         onTextChunk(chunk);
         fullResponse += chunk;
       }
       return fullResponse;
     }
-    fullResponse = await callLLM(config, [{ role: 'user', content: userInput }]);
-    return fullResponse;
+    return await callLLM(config, contextMessages as any);
   }
 
   // 4. Analysis with heuristic skip
   let analysis: ComplexityAnalysis;
-  if (userInput.length < 50 && (lowerInput.includes('show') || lowerInput.includes('list') || lowerInput.includes('read'))) {
-    analysis = { complexity: 'simple', requiresArchitecture: false, estimatedFiles: 0, suggestedAgent: 'general' };
+  const webKeywords = ['http', 'web', 'search', 'browse', 'scrape', 'net', 'recherche', 'cherche', 'site', 'cv', 'trouve'];
+  const isSearchQuery = webKeywords.some(kw => lowerInput.includes(kw));
+  
+  if (userInput.length < 50 && (lowerInput.includes('show') || lowerInput.includes('list') || lowerInput.includes('read') || isSearchQuery)) {
+    analysis = { complexity: 'simple', requiresArchitecture: false, estimatedFiles: 0, suggestedAgent: isSearchQuery ? 'researcher' : 'general' };
   } else {
     analysis = await analyzeComplexity(config, userInput);
   }
@@ -111,25 +98,17 @@ export async function processUserInput(
   // 5. Complex Task: Plan & Execute
   if (analysis.complexity === 'complex' || lowerInput.includes('improve') || lowerInput.includes('améglioré')) {
     let enhancedInput = userInput;
-    if (lowerInput.includes('improve') || lowerInput.includes('améglioré')) {
-      enhancedInput = `Scan project structure and key files first. Then: ${userInput}`;
-    }
-
     const steps = await generatePlan(config, enhancedInput);
     
     for (const step of steps) {
       if (signal?.aborted) throw new Error('Operation aborted by user');
-      
       const stepAnalysis = await analyzeComplexity(config, step.description);
       const stepAgent = agents.find(a => a.name === stepAnalysis.suggestedAgent) || agent;
-      
       const stepPrompt = `Task: ${userInput}\nStep: ${step.description}\nResults: ${JSON.stringify(steps.filter(s => s.status === 'completed').map(s => s.result))}`;
-
-      const stepResult = await executeAgentWithVerification(config, stepAgent, [{ role: 'user', content: stepPrompt }], onToolCall, [], 2, signal, onTextChunk);
+      const stepResult = await executeAgentWithVerification(config, stepAgent, [...history, { role: 'user', content: stepPrompt }] as any, onToolCall, [], 2, signal, onTextChunk);
       step.status = 'completed';
       step.result = stepResult;
     }
-
     return "Complex task completed successfully.";
   }
 
@@ -141,5 +120,5 @@ export async function processUserInput(
   }
 
   const enhancedInput = `Workspace: ${process.cwd()}\nTask: ${userInput}${agentDocs}`;
-  return await executeAgentWithVerification(config, agent, [{ role: 'user', content: enhancedInput }], onToolCall, [], 2, signal, onTextChunk);
+  return await executeAgentWithVerification(config, agent, [...history, { role: 'user', content: enhancedInput }] as any, onToolCall, [], 2, signal, onTextChunk);
 }

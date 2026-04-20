@@ -86,7 +86,7 @@ export class MimocodeEngine {
 
     // 2. Fast Track for explicit commands
     if (input.startsWith('skill run ') || input.startsWith('agents run ')) {
-      const response = await processUserInput(this.config!, input, onToolCall, signal, onTextChunk);
+      const response = await processUserInput(this.config!, input, onToolCall, signal, onTextChunk, messages);
       await saveMessage(sessionId, 'user', input);
       await saveMessage(sessionId, 'assistant', response);
       return { content: response, toolsCalled: [] };
@@ -101,7 +101,8 @@ export class MimocodeEngine {
         input, 
         onToolCall, 
         signal,
-        onTextChunk
+        onTextChunk,
+        messages
       );
       await saveMessage(sessionId, 'user', input);
       await saveMessage(sessionId, 'assistant', response);
@@ -114,7 +115,8 @@ export class MimocodeEngine {
       input, 
       onToolCall, 
       signal,
-      onTextChunk
+      onTextChunk,
+      messages
     );
 
     await saveMessage(sessionId, 'user', input);
