@@ -241,16 +241,27 @@ async function startMimocodeChat(config: Config) {
 
     try {
       process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} `);
+      let streamedOutput = '';
+      let isFirstChunk = true;
+
       const response = await engine.process(fullInput, (name) => {
         spinner.text = chalk.yellow(`Using ${name}...`);
       }, abortController.signal, (chunk) => {
-        spinner.stop();
+        if (isFirstChunk) {
+          spinner.stop();
+          isFirstChunk = false;
+        }
         process.stdout.write(chunk);
+        streamedOutput += chunk;
       });
       
       spinner.stop();
-      // On s'assure que le contenu final est bien formaté après le streaming
-      // console.log(await marked.parse(response.content)); // Optionnel si on veut re-formater à la fin
+      // Si rien n'a été streamé (cas des réponses ultra-rapides sans callback activé à temps)
+      if (!streamedOutput && response.content) {
+        process.stdout.write(await marked.parse(response.content));
+      } else if (streamedOutput) {
+        process.stdout.write('\n');
+      }
     } catch (e: any) {
       spinner.stop();
       if (e.message === 'Operation aborted by user') {
@@ -356,15 +367,26 @@ program
       
       try {
         process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} Result:\n`);
+        let streamedOutput = '';
+        let isFirstChunk = true;
+        
         const response = await engine.process(cmd, (name) => {
           spinner.text = chalk.yellow(`Using ${name}...`);
         }, undefined, (chunk) => {
-          spinner.stop();
+          if (isFirstChunk) {
+            spinner.stop();
+            isFirstChunk = false;
+          }
           process.stdout.write(chunk);
+          streamedOutput += chunk;
         });
         
         spinner.stop();
-        process.stdout.write('\n');
+        if (!streamedOutput && response.content) {
+          process.stdout.write(await marked.parse(response.content));
+        } else if (streamedOutput) {
+          process.stdout.write('\n');
+        }
         
         // Au lieu de sortir immédiatement, demander si l'utilisateur veut continuer en chat
         const { stay } = await inquirer.prompt([{

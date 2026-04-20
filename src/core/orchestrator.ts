@@ -83,7 +83,17 @@ export async function processUserInput(
   // 3. FAST PATH: Simple greetings and short inputs
   const simpleMessages = ['hi', 'hello', 'salut', 'bonjour', 'hey', 'ça va', 'test', 'test?'];
   if (simpleMessages.includes(lowerInput) || (userInput.length < 30 && !lowerInput.includes(' '))) {
-    return await callLLM(config, [{ role: 'user', content: userInput }]);
+    let fullResponse = '';
+    if (onTextChunk) {
+      const stream = await import('./llm').then(m => m.callLLMStream(config, [{ role: 'user', content: userInput }], {}, signal));
+      for await (const chunk of stream) {
+        onTextChunk(chunk);
+        fullResponse += chunk;
+      }
+      return fullResponse;
+    }
+    fullResponse = await callLLM(config, [{ role: 'user', content: userInput }]);
+    return fullResponse;
   }
 
   // 4. Analysis with heuristic skip
