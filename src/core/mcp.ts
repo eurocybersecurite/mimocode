@@ -319,12 +319,29 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
           if (code === 0) {
             resolve(`Output: ${stdout || 'Success'}`);
           } else {
-            // Smarter error reporting
+            // Smarter error reporting with Repair Tips
             let errorMsg = stderr || stdout;
+            let tips = "";
+
             if (errorMsg.includes('Missing script: "start"')) {
-              errorMsg += "\nTip: For Vite/React projects, try 'npm run dev' instead of 'npm start'.";
+              tips += "\nTip: For Vite/React projects, try 'npm run dev' instead of 'npm start'. Check package.json scripts.";
             }
-            resolve(`Error (Exit Code ${code}): ${errorMsg}`);
+            if (errorMsg.includes('command not found') || errorMsg.includes('not found')) {
+              tips += "\nTip: The command is not installed. Try searching for it or installing the corresponding package (e.g., npm install <package>).";
+            }
+            if (errorMsg.includes('MODULE_NOT_FOUND')) {
+              tips += "\nTip: A required node module is missing. Try running 'npm install'.";
+            }
+            if (errorMsg.includes('No such file or directory')) {
+              tips += "\nTip: Verify the path with 'list_dir'. If you are in a subdirectory, use the correct relative path or the 'cwd' argument.";
+            }
+            if (errorMsg.includes('EADDRINUSE')) {
+              const portMatch = errorMsg.match(/port:? (\d+)/i);
+              const port = portMatch ? portMatch[1] : 'the port';
+              tips += `\nTip: Port ${port} is already in use. Try to find and kill the process or use a different port (Mimocode prefers 3000).`;
+            }
+
+            resolve(`Error (Exit Code ${code}): ${errorMsg}${tips}`);
           }
         });
         
@@ -679,6 +696,25 @@ if __name__ == "__main__":
         return `Database connection failed: ${e.message}`;
       }
     }
+  },
+  {
+    name: 'update_scratchpad',
+    description: 'Update the project scratchpad with findings, todos, or current state. Use this to maintain a working memory across multiple turns.',
+    execute: async ({ content, section }) => {
+      const scratchpadPath = path.join(process.cwd(), '.mimocode', 'scratchpad.md');
+      await fs.ensureDir(path.dirname(scratchpadPath));
+      
+      let existingContent = '';
+      if (await fs.pathExists(scratchpadPath)) {
+        existingContent = await fs.readFile(scratchpadPath, 'utf-8');
+      }
+
+      const timestamp = new Date().toLocaleString();
+      const newEntry = `\n\n## ${section || 'Update'} (${timestamp})\n${content}`;
+      
+      await fs.writeFile(scratchpadPath, existingContent + newEntry, 'utf-8');
+      return `Scratchpad updated in .mimocode/scratchpad.md`;
+    },
   },
   {
     name: 'convert_to_markdown',

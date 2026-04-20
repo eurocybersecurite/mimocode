@@ -137,11 +137,20 @@ export async function callLLMWithTools(
 
   const allTools = [...activeTools, ...extraTools];
   
+  // Load Scratchpad if exists
+  let scratchpadContent = '';
+  const scratchpadPath = path.join(cwd, '.mimocode', 'scratchpad.md');
+  if (fs.existsSync(scratchpadPath)) {
+    try {
+      scratchpadContent = `\n\n# PROJECT SCRATCHPAD (Current Progress & Findings):\n${fs.readFileSync(scratchpadPath, 'utf-8')}`;
+    } catch (e) {}
+  }
+
   const baseSystemPrompt = `${options.systemInstruction || "You are a world-class autonomous engineer."}
 
 CURRENT ENVIRONMENT:
 - Working Directory: ${cwd}
-- OS: ${process.platform}
+- OS: ${process.platform}${scratchpadContent}
 
 AVAILABLE TOOLS:
 ${allTools.map(t => `- ${t.name}: ${t.description}`).join('\n')}
@@ -207,6 +216,11 @@ When you need to perform an action, use this EXACT format:
 5. Do not ask for permission to fix obvious environment issues unless they are high-risk.
 6. If you encounter a bug in the code you just wrote, fix it immediately after seeing the error in the logs.
 7. STOP CONDITION: If a tool result or verification confirms the goal is achieved (e.g., file deleted, content written, command succeeded), STOP and provide the final answer. Do NOT repeat the action or try alternative tools for the same goal.
+
+# SCRATCHPAD USAGE (Your working memory):
+1. For ANY task that requires more than 2 steps, start by updating the scratchpad with your plan using 'update_scratchpad'.
+2. When you discover something important (e.g., "the API uses port 8080", "the main entry point is in src/index.ts"), log it in the scratchpad.
+3. This file is YOUR memory. Use it to keep track of what you have done and what you need to do next.
 
 # VERIFICATION & PERMISSIONS:
 1. After deleting or modifying a file/directory, ALWAYS perform a 'read_file' or 'list_dir' to verify the action was successful. This ensures you have an up-to-date view of the file system.

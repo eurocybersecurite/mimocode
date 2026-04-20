@@ -230,6 +230,16 @@ export async function executeAgentWithVerification(
         fullSystemInstruction = `Role: ${agent.role || 'General Assistant'}\nPersona: ${agent.persona || 'Helpful and professional'}\n\n${agent.systemInstruction}`;
       }
 
+      // Proactive Auto-Correction Instruction
+      if (retryCount > 0) {
+        fullSystemInstruction += `\n\n# SELF-HEAL MODE ACTIVE:
+1. You previously encountered an error. 
+2. Your task NOW is to DIAGNOSE why it failed (use read_file, list_dir, or check_environment).
+3. Then, FIX the issue autonomously.
+4. Finally, retry the original task.
+DO NOT apologize. Focus 100% on the technical fix.`;
+      }
+
       const plugins = await loadPlugins();
       const skillTools = await getSkillTools(config);
       const allExtraTools = [...extraTools, ...gitTools, ...dockerTools, ...skillTools, ...plugins.flatMap(p => p.tools)];
