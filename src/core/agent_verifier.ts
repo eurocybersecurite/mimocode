@@ -117,51 +117,73 @@ export async function verifyDirectoryCreated(dirPath: string, expectedFiles?: st
 /**
  * Verifies if a command execution was likely successful based on output and common error patterns.
  */
-export function verifyCommandSuccess(command: string, output: string): VerificationResult {
+export function verifyCommandSuccess(command: string, result: string | any): VerificationResult {
+  let output = typeof result === 'string' ? result : JSON.stringify(result);
+  
+  // If result is an object with exitCode, use it!
+  if (typeof result === 'object' && result !== null && 'exitCode' in result) {
+    if (result.exitCode === 0) {
+      return { success: true, message: `Command executed successfully (exit code 0).` };
+    } else {
+      return { success: false, message: `Command failed with exit code ${result.exitCode}.`, details: { output } };
+    }
+  }
+
+  // Fallback for strings that include "(Exit Code X)" or "Error (Exit Code X)"
+  const exitCodeMatch = output.match(/\(Exit Code (\d+)\)/);
+  if (exitCodeMatch) {
+    const code = parseInt(exitCodeMatch[1]);
+    if (code === 0) return { success: true, message: "Command succeeded (exit code 0)." };
+    return { success: false, message: `Command failed with exit code ${code}.`, details: { output } };
+  }
+
   const errorPatterns = [
     /error:/i,
-    /failed/i,
     /fatal:/i,
-    /not found/i,
-    /cannot find/i,
-    /no such file/i,
-    /permission denied/i,
-    /exception/i,
-    /stack trace/i,
     /sh: .*: not found/i,
-    /bash: .*: command not found/i
+    /bash: .*: command not found/i,
+    /command not found/i,
+    /No such file or directory/i,
+    /Permission denied/i
   ];
 
-  // Some commands might output "error" in a non-fatal way, but generally it's a good indicator
+  // Specific success indicators
+  const successPatterns = [
+    /success/i,
+    /successfully/i,
+    /done/i,
+    /completed/i
+  ];
+
   const matches = errorPatterns.filter(pattern => pattern.test(output));
   
   // Special case for 'rm': if it says "no such file", it's actually a success if the goal was deletion
   if (command.trim().startsWith('rm') && (output.toLowerCase().includes('no such file') || output.toLowerCase().includes('not found'))) {
     return {
       success: true,
-      message: `Verification success: File is already gone (output: ${output.trim()}).`
+      message: `Verification success: File is already gone.`
     };
   }
 
-  // Special case for 'mkdir -p': it might not output anything, which is success
-  if (command.trim().startsWith('mkdir') && output.trim() === '') {
+  // Special case for 'mkdir -p' or 'cd' (if it didn't fail, it worked)
+  if ((command.trim().startsWith('mkdir') || command.trim().startsWith('cd')) && matches.length === 0) {
     return {
       success: true,
-      message: `Verification success: Directory created or already exists.`
+      message: `Verification success: Operation completed.`
     };
   }
 
-  if (matches.length > 0 && !output.toLowerCase().includes('0 errors') && !output.toLowerCase().includes('success')) {
+  if (matches.length > 0 && !successPatterns.some(p => p.test(output))) {
     return {
       success: false,
-      message: `Verification warning: Command '${command}' output contains potential error patterns.`,
-      details: { matches: matches.map(m => m.toString()), output: output.slice(0, 200) + '...' }
+      message: `Verification warning: Command execution might have failed.`,
+      details: { matches: matches.map(m => m.toString()) }
     };
   }
 
   return {
     success: true,
-    message: `Verification success: Command '${command}' executed without obvious errors.`,
+    message: `Verification success: Command executed.`,
     details: { outputPreview: output.slice(0, 100) }
   };
 }

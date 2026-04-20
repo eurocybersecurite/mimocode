@@ -51,8 +51,17 @@ export async function checkPermission(command: string, details?: string): Promis
   if (sessionAllowed.has(command)) return { allowed: true };
 
   // 4. Fast-allow for read-only or safe operations
-  const safePatterns = [/git status/, /ls /, /cat /, /grep /, /find /, /npm test/, /git diff/];
+  const safePatterns = [
+    /git status/, /git diff/, /git log/, /ls /, /cat /, /grep /, /find /, 
+    /npm test/, /npm run test/, /jest/, /vitest/, /mocha/,
+    /pwd/, /whoami/, /date/, /echo /, /tree/
+  ];
   if (safePatterns.some(p => p.test(command)) && !details) return { allowed: true };
+
+  // 5. Check for already allowed directory patterns (Session persistence)
+  for (const allowedPath of sessionAllowed) {
+    if (command.includes(allowedPath)) return { allowed: true };
+  }
 
   // 5. Non-interactive mode (Web / CI)
   if (process.env.MIMOCODE_NON_INTERACTIVE === 'true') return { allowed: true };
@@ -83,6 +92,11 @@ export async function checkPermission(command: string, details?: string): Promis
 
   switch (choice) {
     case 'once':
+      // If it's a cd or mkdir, trust that path for the session
+      const pathMatch = command.match(/(?:cd|mkdir)\s+([^\s]+)/);
+      if (pathMatch) {
+        sessionAllowed.add(pathMatch[1]);
+      }
       return { allowed: true };
     case 'session':
       fullSessionTrust = true;

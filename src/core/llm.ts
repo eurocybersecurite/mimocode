@@ -109,7 +109,33 @@ export async function callLLMWithTools(
   signal?: AbortSignal
 ): Promise<LLMResponse> {
   const cwd = process.cwd();
-  const allTools = [...mcpTools, ...extraTools];
+  const filteredMessages = messages.filter(m => m.role !== 'system');
+  const recentMessages = filteredMessages.slice(-30);
+  const userQuery = recentMessages[recentMessages.length - 1]?.content.toLowerCase() || "";
+
+  // DYNAMIC CONTEXT PRUNING: Only include relevant tools
+  let activeTools = mcpTools;
+  if (userQuery) {
+    const isGitRelated = userQuery.includes('git') || userQuery.includes('commit') || userQuery.includes('branch');
+    const isDockerRelated = userQuery.includes('docker') || userQuery.includes('container');
+    const isWebRelated = userQuery.includes('http') || userQuery.includes('web') || userQuery.includes('search') || userQuery.includes('browse') || userQuery.includes('scrape');
+    const isDbRelated = userQuery.includes('sql') || userQuery.includes('db') || userQuery.includes('database') || userQuery.includes('query');
+
+    activeTools = mcpTools.filter(t => {
+      // Always include core file/shell tools
+      const coreTools = ['read_file', 'write_file', 'list_dir', 'run_command', 'delete_file', 'create_directory', 'list_files_recursive', 'fast_search'];
+      if (coreTools.includes(t.name)) return true;
+      
+      if (!isGitRelated && (t.name.includes('git') || t.name.includes('history_analyzer'))) return false;
+      if (!isDockerRelated && t.name.includes('docker')) return false;
+      if (!isWebRelated && t.name.startsWith('web_')) return false;
+      if (!isDbRelated && t.name.includes('database')) return false;
+      
+      return true;
+    });
+  }
+
+  const allTools = [...activeTools, ...extraTools];
   
   const baseSystemPrompt = `${options.systemInstruction || "You are a world-class autonomous engineer."}
 
@@ -195,9 +221,6 @@ When you need to perform an action, use this EXACT format:
 Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
 
   const combinedSystemPrompt = `${baseSystemPrompt}\n\n${toolSystemPrompt}`;
-
-  const filteredMessages = messages.filter(m => m.role !== 'system');
-  const recentMessages = filteredMessages.slice(-30);
 
   const chatMessagesWithTools: Message[] = [
     { role: 'system', content: combinedSystemPrompt },

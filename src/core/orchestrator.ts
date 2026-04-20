@@ -19,6 +19,16 @@ export interface ComplexityAnalysis {
  * Level 1: Analyze complexity of user input
  */
 export async function analyzeComplexity(config: Config, userInput: string): Promise<ComplexityAnalysis> {
+  const lowerInput = userInput.toLowerCase();
+  
+  // HEURISTIC FAST PATH: Avoid LLM call for obvious simple tasks
+  const simpleKeywords = ['say', 'hello', 'hi', 'bonjour', 'salut', 'test', 'status', 'list', 'read', 'cat'];
+  const isObviousSimple = (userInput.length < 100 && simpleKeywords.some(k => lowerInput.includes(k))) || userInput.length < 20;
+  
+  if (isObviousSimple && !lowerInput.includes('create') && !lowerInput.includes('fix') && !lowerInput.includes('implement')) {
+    return { complexity: 'simple', requiresArchitecture: false, estimatedFiles: 0, suggestedAgent: 'general' };
+  }
+
   const prompt = `Analyze the following user request: "${userInput}"
   Respond ONLY with a JSON object:
   {
@@ -69,14 +79,20 @@ export async function processUserInput(
     return await executeAgentWithVerification(config, targetAgent, [{ role: 'user', content: agentInput }], onToolCall, [], 2, signal);
   }
 
-  // 3. FAST PATH: Simple greetings
+  // 3. FAST PATH: Simple greetings and short inputs
   const simpleMessages = ['hi', 'hello', 'salut', 'bonjour', 'hey', 'ça va', 'test', 'test?'];
-  if (simpleMessages.includes(lowerInput) || userInput.length < 3) {
+  if (simpleMessages.includes(lowerInput) || (userInput.length < 30 && !lowerInput.includes(' '))) {
     return await callLLM(config, [{ role: 'user', content: userInput }]);
   }
 
-  // 4. Analysis
-  const analysis = await analyzeComplexity(config, userInput);
+  // 4. Analysis with heuristic skip
+  let analysis: ComplexityAnalysis;
+  if (userInput.length < 50 && (lowerInput.includes('show') || lowerInput.includes('list') || lowerInput.includes('read'))) {
+    analysis = { complexity: 'simple', requiresArchitecture: false, estimatedFiles: 0, suggestedAgent: 'general' };
+  } else {
+    analysis = await analyzeComplexity(config, userInput);
+  }
+  
   const agents = await loadAgents(config);
   const agentName = analysis.suggestedAgent || 'general';
   const agent = agents.find(a => a.name === agentName) || agents.find(a => a.name === 'mimocode') || agents[0];
