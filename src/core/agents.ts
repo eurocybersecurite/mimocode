@@ -259,19 +259,18 @@ DO NOT apologize. Focus 100% on the technical fix.`;
       break; // Success!
     } catch (error: any) {
       retryCount++;
-      console.log(chalk.yellow(`\n🔄 Retry ${retryCount}/${maxRetries} due to: ${error.message}`));
-      
+
       // Add error message to context for the next attempt
-      currentMessages.push({ 
-        role: 'user', 
-        content: `An error occurred during execution: ${error.message}. Please fix it and try again.` 
+      currentMessages.push({
+        role: 'user',
+        content: `An error occurred during execution: ${error.message}. Please fix it and try again.`
       });
-      
+
       if (retryCount >= maxRetries) {
-        console.log(chalk.red(`\n❌ Max retries reached. Execution failed.`));
         throw error;
       }
     }
+
   }
 
   await recordHistory(config, {

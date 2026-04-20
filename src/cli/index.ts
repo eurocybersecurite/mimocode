@@ -248,8 +248,11 @@ async function startMimocodeChat(config: Config, skipMenu = false) {
       let streamedOutput = '';
       let isFirstChunk = true;
 
-      const response = await engine.process(fullInput, (name) => {
-        spinner.text = chalk.yellow(`Using ${name}...`);
+      const response = await engine.process(fullInput, (name, args, result) => {
+        spinner.stop();
+        if (result && (result.startsWith('✓') || result.includes('→'))) {
+          process.stdout.write(`\r\x1b[K  ${chalk.dim(result)}\n`);
+        }
       }, abortController.signal, (chunk) => {
         if (isFirstChunk) {
           spinner.stop();
@@ -374,8 +377,11 @@ program
         let streamedOutput = '';
         let isFirstChunk = true;
         
-        const response = await engine.process(cmd, (name) => {
-          spinner.text = chalk.yellow(`Using ${name}...`);
+        const response = await engine.process(cmd, (name, args, result) => {
+          spinner.stop();
+          if (result && (result.startsWith('✓') || result.includes('→'))) {
+            process.stdout.write(`\r\x1b[K  ${chalk.dim(result)}\n`);
+          }
         }, undefined, (chunk) => {
           if (isFirstChunk) {
             spinner.stop();

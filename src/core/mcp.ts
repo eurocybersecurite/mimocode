@@ -64,20 +64,24 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
       }
 
       const fullPath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
-      
-      // Security check: ensure path is within workspace or a safe location
-      // For CLI we are more permissive, but let's at least log it
+
+      let oldLines = 0;
+      if (await fs.pathExists(fullPath)) {
+        const oldContent = await fs.readFile(fullPath, 'utf-8');
+        oldLines = oldContent.split('\n').length;
+      }
+
       await fs.ensureDir(path.dirname(fullPath));
       await fs.writeFile(fullPath, content, 'utf-8');
-      // Use the new verification logic for better feedback
-      const verification = await verifyFileWritten(filePath, content);
-      if (verification.success) {
-        return `Successfully wrote ${content.length} characters to ${filePath}. ${verification.message}`;
-      } else {
-        return `Warning: Wrote to ${filePath} but verification failed: ${verification.message}`;
-      }
-    },
-  },
+
+      const newLines = content.split('\n').length;
+      const added = Math.max(0, newLines - oldLines);
+      const removed = Math.max(0, oldLines - newLines);
+
+      return `✓ Edit ${filePath} → Accepted (+${added}, -${removed})`;
+      },
+      },
+
   {
     name: 'list_dir',
     description: 'List files in a directory.',
@@ -290,7 +294,6 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
         child.stdout.on('data', (data) => {
           const chunk = data.toString();
           stdout += chunk;
-          process.stdout.write(chunk);
 
           if (!resolved && (
             chunk.includes('ready in') || 
@@ -306,14 +309,14 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
         child.stderr.on('data', (data) => {
           const chunk = data.toString();
           stderr += chunk;
-          process.stdout.write(chalk.red(chunk));
         });
         
         child.on('close', (code) => {
           if (resolved) return;
           resolved = true;
           if (code === 0) {
-            resolve(`Output: ${stdout || 'Success'}`);
+            const shortCmd = command.length > 30 ? command.slice(0, 30) + '...' : command;
+            resolve(`✓ shell ${shortCmd} → Success`);
           } else {
             // Smarter error reporting with Repair Tips
             let errorMsg = stderr || stdout;

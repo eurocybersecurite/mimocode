@@ -329,7 +329,7 @@ Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
             if (normalizedArgs.path && !normalizedArgs.dirPath) normalizedArgs.dirPath = normalizedArgs.path;
 
             if (onToolStart) onToolStart(name, normalizedArgs);
-            else if (onTextChunk) onTextChunk(`\n🔧 Exécution de ${chalk.bold(name)}...\n`);
+            else if (onTextChunk) onTextChunk(` ⚡ `);
             
             // Report to web interface
             await reportEvent('tool_start', { name, args: normalizedArgs });
