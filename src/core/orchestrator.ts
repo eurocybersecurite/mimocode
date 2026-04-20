@@ -54,7 +54,8 @@ export async function processUserInput(
   config: Config, 
   userInput: string, 
   onToolCall?: (name: string, args: any, result: string, error?: string) => Promise<void> | void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onTextChunk?: (chunk: string) => void
 ): Promise<string> {
   const trimmedInput = userInput.trim();
   const lowerInput = trimmedInput.toLowerCase();
@@ -76,7 +77,7 @@ export async function processUserInput(
     const agentInput = trimmedInput.split(' ').slice(3).join(' ') || 'Please assist me';
     const agents = await loadAgents(config);
     const targetAgent = agents.find(a => a.name === agentName) || agents[0];
-    return await executeAgentWithVerification(config, targetAgent, [{ role: 'user', content: agentInput }], onToolCall, [], 2, signal);
+    return await executeAgentWithVerification(config, targetAgent, [{ role: 'user', content: agentInput }], onToolCall, [], 2, signal, onTextChunk);
   }
 
   // 3. FAST PATH: Simple greetings and short inputs
@@ -114,7 +115,7 @@ export async function processUserInput(
       
       const stepPrompt = `Task: ${userInput}\nStep: ${step.description}\nResults: ${JSON.stringify(steps.filter(s => s.status === 'completed').map(s => s.result))}`;
 
-      const stepResult = await executeAgentWithVerification(config, stepAgent, [{ role: 'user', content: stepPrompt }], onToolCall, [], 2, signal);
+      const stepResult = await executeAgentWithVerification(config, stepAgent, [{ role: 'user', content: stepPrompt }], onToolCall, [], 2, signal, onTextChunk);
       step.status = 'completed';
       step.result = stepResult;
     }
@@ -130,5 +131,5 @@ export async function processUserInput(
   }
 
   const enhancedInput = `Workspace: ${process.cwd()}\nTask: ${userInput}${agentDocs}`;
-  return await executeAgentWithVerification(config, agent, [{ role: 'user', content: enhancedInput }], onToolCall, [], 2, signal);
+  return await executeAgentWithVerification(config, agent, [{ role: 'user', content: enhancedInput }], onToolCall, [], 2, signal, onTextChunk);
 }

@@ -67,7 +67,12 @@ export class MimocodeEngine {
     ];
   }
 
-  async process(input: string, onToolCall?: (name: string, args: any, result: string, error?: string) => void, signal?: AbortSignal): Promise<EngineResponse> {
+  async process(
+    input: string, 
+    onToolCall?: (name: string, args: any, result: string, error?: string) => void, 
+    signal?: AbortSignal,
+    onTextChunk?: (chunk: string) => void
+  ): Promise<EngineResponse> {
     if (!this.config) await this.init();
     
     const sessionId = await getOrCreateSession(this.currentWorkspace);
@@ -81,7 +86,7 @@ export class MimocodeEngine {
 
     // 2. Fast Track for explicit commands
     if (input.startsWith('skill run ') || input.startsWith('agents run ')) {
-      const response = await processUserInput(this.config!, input, onToolCall, signal);
+      const response = await processUserInput(this.config!, input, onToolCall, signal, onTextChunk);
       await saveMessage(sessionId, 'user', input);
       await saveMessage(sessionId, 'assistant', response);
       return { content: response, toolsCalled: [] };
@@ -91,14 +96,13 @@ export class MimocodeEngine {
     const isObviousSimple = input.length < 50 && !input.toLowerCase().includes('create') && !input.toLowerCase().includes('refactor');
     
     if (!isObviousSimple) {
-      // For complex requests, we use the orchestrator which might do more analysis
-      // but we try to keep it efficient.
-      const response = await import('./orchestrator').then(m => m.processUserInput(
+      const response = await processUserInput(
         this.config!, 
         input, 
         onToolCall, 
-        signal
-      ));
+        signal,
+        onTextChunk
+      );
       await saveMessage(sessionId, 'user', input);
       await saveMessage(sessionId, 'assistant', response);
       return { content: response, toolsCalled: [] };
@@ -109,7 +113,8 @@ export class MimocodeEngine {
       this.config!, 
       input, 
       onToolCall, 
-      signal
+      signal,
+      onTextChunk
     );
 
     await saveMessage(sessionId, 'user', input);

@@ -197,7 +197,8 @@ export async function executeAgentWithVerification(
   onToolCall?: (name: string, args: any, result: string, error?: string) => Promise<void> | void,
   extraTools: any[] = [],
   maxRetries = 3,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onTextChunk?: (chunk: string) => void
 ): Promise<string> {
   let retryCount = 0;
   let currentMessages = [...messages];
@@ -249,7 +250,7 @@ DO NOT apologize. Focus 100% on the technical fix.`;
         currentMessages, 
         { systemInstruction: fullSystemInstruction }, 
         wrappedOnToolCall, 
-        undefined, 
+        onTextChunk, 
         allExtraTools,
         undefined,
         signal

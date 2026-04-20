@@ -240,13 +240,17 @@ async function startMimocodeChat(config: Config) {
     const spinner = ora({ text: chalk.cyan('Thinking...'), spinner: 'dots' }).start();
 
     try {
+      process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} `);
       const response = await engine.process(fullInput, (name) => {
         spinner.text = chalk.yellow(`Using ${name}...`);
-      }, abortController.signal);
+      }, abortController.signal, (chunk) => {
+        spinner.stop();
+        process.stdout.write(chunk);
+      });
       
       spinner.stop();
-      process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} `);
-      console.log(await marked.parse(response.content));
+      // On s'assure que le contenu final est bien formaté après le streaming
+      // console.log(await marked.parse(response.content)); // Optionnel si on veut re-formater à la fin
     } catch (e: any) {
       spinner.stop();
       if (e.message === 'Operation aborted by user') {
@@ -351,13 +355,16 @@ program
       const spinner = ora({ text: chalk.cyan(`Executing: ${cmd}...`), spinner: 'dots' }).start();
       
       try {
+        process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} Result:\n`);
         const response = await engine.process(cmd, (name) => {
           spinner.text = chalk.yellow(`Using ${name}...`);
+        }, undefined, (chunk) => {
+          spinner.stop();
+          process.stdout.write(chunk);
         });
         
         spinner.stop();
-        process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} Result:\n`);
-        console.log(await marked.parse(response.content));
+        process.stdout.write('\n');
         
         // Au lieu de sortir immédiatement, demander si l'utilisateur veut continuer en chat
         const { stay } = await inquirer.prompt([{
