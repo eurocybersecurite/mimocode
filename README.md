@@ -1,7 +1,7 @@
 # mimocode 🚀
 
 **mimocode** est un ingénieur IA autonome 100% local, puissant et flexible. Contrairement aux chatbots classiques, Mimocode est un **agent** capable d'agir directement sur votre système de fichiers et d'exécuter des commandes shell pour accomplir vos tâches.
-
+(v2)
 ## ✨ Fonctionnalités
 
 - **Autonomie Réelle** : Mimocode ne se contente pas de parler, il **agit**. Il crée, modifie, teste et déploie du code en utilisant ses outils intégrés.
