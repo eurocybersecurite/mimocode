@@ -276,8 +276,10 @@ Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
           
           // 2. Cacher la balise en cours (non fermée)
           // On cherche n'importe quoi qui commence par <tool pour éviter les flashs
-          const openTagIndex = textToDisplay.toLowerCase().indexOf('<tool');
-          if (openTagIndex !== -1) {
+          const openTagIndex = textToDisplay.toLowerCase().lastIndexOf('<tool');
+          const closeTagIndex = textToDisplay.toLowerCase().lastIndexOf('>');
+          
+          if (openTagIndex !== -1 && openTagIndex > closeTagIndex) {
             textToDisplay = textToDisplay.substring(0, openTagIndex);
           }
           

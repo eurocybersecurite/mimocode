@@ -395,11 +395,19 @@ program
         if (!streamedOutput && response.content) {
           process.stdout.write(await marked.parse(response.content));
         } else if (streamedOutput) {
+          // Add a small final check to see if there's any remaining unprinted text
+          const finalClean = response.content.substring(streamedOutput.length);
+          if (finalClean.trim()) {
+             // process.stdout.write(finalClean); // Optional, might cause double text
+          }
           process.stdout.write('\n');
         }
         
         // Transition automatique vers le mode interactif (ATC Style)
-        await startMimocodeChat(config, true);
+        // On ne l'appelle que si on n'est pas déjà dans une boucle readline
+        if (!program.opts().chatStarted) {
+          await startMimocodeChat(config, true);
+        }
       } catch (e: any) {
         spinner.stop();
         console.error(chalk.red(`\nError: ${e.message}`));

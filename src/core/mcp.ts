@@ -321,7 +321,14 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
           resolved = true;
           if (code === 0) {
             const shortCmd = command.length > 30 ? command.slice(0, 30) + '...' : command;
-            resolve(`✓ shell ${shortCmd} → Success`);
+            let resultPrefix = `✓ shell ${shortCmd} → Success`;
+            
+            // Critical check for 'mail' command which often fails silently
+            if (command.startsWith('mail ')) {
+              resultPrefix += " (Warning: 'mail' command returned code 0 but might not have been delivered if your local SMTP is not configured. Ask user to check if they received it.)";
+            }
+            
+            resolve(resultPrefix);
           } else {
             // Smarter error reporting with Repair Tips
             let errorMsg = stderr || stdout;
