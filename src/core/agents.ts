@@ -282,9 +282,9 @@ DO NOT apologize. Focus 100% on the technical fix.`;
 
   // Skill Discovery: Ask if this should be a new skill
   // Only suggest if tools were called and it's a substantial response
-  if (toolsCalled && finalResponse.length > 500 && !agent.name.includes('skill')) {
-    await discoverNewSkill(config, messages, finalResponse);
-  }
+  // if (toolsCalled && finalResponse.length > 500 && !agent.name.includes('skill')) {
+  //   await discoverNewSkill(config, messages, finalResponse);
+  // }
 
   return finalResponse;
 }

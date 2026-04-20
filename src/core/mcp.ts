@@ -64,23 +64,24 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
       }
 
       const fullPath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
-
-      let oldLines = 0;
+      
+      let oldContent = '';
       if (await fs.pathExists(fullPath)) {
-        const oldContent = await fs.readFile(fullPath, 'utf-8');
-        oldLines = oldContent.split('\n').length;
+        oldContent = await fs.readFile(fullPath, 'utf-8');
+      }
+
+      // Exact content comparison
+      if (oldContent === content && oldContent.length > 0) {
+        return `Error: No changes detected. The content you provided is identical to what is already in ${filePath}. If you intended to append or modify, make sure the 'content' argument is different.`;
       }
 
       await fs.ensureDir(path.dirname(fullPath));
       await fs.writeFile(fullPath, content, 'utf-8');
-
+      
+      const oldLines = oldContent.split('\n').length;
       const newLines = content.split('\n').length;
       const added = Math.max(0, newLines - oldLines);
       const removed = Math.max(0, oldLines - newLines);
-
-      if (added === 0 && removed === 0 && oldLines > 0) {
-        return `Error: No changes detected (+0, -0). You provided the exact same content as the existing file. Please make sure to include your new additions or finalizations in the 'content' argument.`;
-      }
 
       return `✓ Edit ${filePath} → Accepted (+${added}, -${removed})`;
       },
