@@ -67,11 +67,8 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
       
       // Security check: ensure path is within workspace or a safe location
       // For CLI we are more permissive, but let's at least log it
-      console.log(chalk.dim(`[FileSystem] Writing to: ${fullPath}`));
-      
       await fs.ensureDir(path.dirname(fullPath));
       await fs.writeFile(fullPath, content, 'utf-8');
-      
       // Use the new verification logic for better feedback
       const verification = await verifyFileWritten(filePath, content);
       if (verification.success) {
@@ -216,10 +213,9 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
         fullDest = path.join(fullDest, path.basename(fullSource));
       }
       
-      console.log(chalk.dim(`[FileSystem] Moving: ${fullSource} -> ${fullDest}`));
-      
       await fs.ensureDir(path.dirname(fullDest));
       await fs.move(fullSource, fullDest, { overwrite: true });
+
       return `Moved ${source} to ${fullDest} successfully.`;
     },
   },

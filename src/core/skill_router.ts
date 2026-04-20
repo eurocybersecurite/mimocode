@@ -18,15 +18,11 @@ export async function routeToSkill(config: Config, userInput: string): Promise<S
   for (const skill of skills) {
     const keywords = skill.name.split(/[-_ ]/);
     if (keywords.some(kw => userInput.toLowerCase().includes(kw.toLowerCase()) && kw.length > 3)) {
-      console.log(chalk.blue(`\n🛠️  Skill detected: ${skill.name}. Routing...`));
-      
       // If the skill is complex (e.g. "create-app"), route to orchestrator
       if (skill.name.includes('create') || skill.name.includes('app') || skill.workflow) {
-        console.log(chalk.dim(`[SkillRouter] Complex skill detected. Delegating to Orchestrator...`));
         const response = await processUserInput(config, `Using skill "${skill.name}": ${userInput}`);
         return { used: true, response };
       }
-
       const response = await runSkill(config, skill.name, userInput);
       return { used: true, response };
     }

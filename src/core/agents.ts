@@ -219,9 +219,8 @@ export async function executeAgentWithVerification(
         if (!verification.success) {
           console.log(chalk.red(`\n⚠️ Verification Failed for ${name}: ${verification.message}`));
           throw new Error(`Verification failed for ${name}: ${verification.message}`);
-        } else {
-          console.log(chalk.green(`\n✅ Verified ${name}: ${verification.message}`));
         }
+        // Success logs removed for ATC-style clean output
       }
     };
 
