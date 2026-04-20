@@ -139,8 +139,7 @@ async function handleSlashCommand(input: string, config: Config) {
       console.log(chalk.green('\n✓ Chat history cleared\n'));
       break;
     case 'exit':
-      process.exit(0);
-      break;
+      return 'exit'; // Signal pour quitter
     case 'cd':
       if (args[0]) {
         const newPath = path.resolve(process.cwd(), args[0]);
@@ -156,6 +155,7 @@ async function handleSlashCommand(input: string, config: Config) {
     default:
       console.log(chalk.red(`\n❌ Unknown command: /${command}. Type /help for assistance.\n`));
   }
+  return null;
 }
 
 async function startMimocodeChat(config: Config, skipMenu = false) {
@@ -202,13 +202,16 @@ async function startMimocodeChat(config: Config, skipMenu = false) {
 
   let isProcessing = false;
   let abortController = new AbortController();
+  let shouldExit = false;
 
   const askQuestion = () => {
-    rl.prompt();
+    if (!shouldExit && !isProcessing) {
+      rl.prompt();
+    }
   };
 
   rl.on('line', async (line) => {
-    if (isProcessing) return;
+    if (isProcessing || shouldExit) return;
     
     const input = line.trim();
     
@@ -223,10 +226,19 @@ async function startMimocodeChat(config: Config, skipMenu = false) {
     multiLineBuffer = '';
     rl.setPrompt(`${chalk.bold.hex('#6366f1')('> ')}`);
 
-    if (!fullInput) { askQuestion(); return; }
+    if (!fullInput) { 
+      askQuestion(); 
+      return; 
+    }
 
     if (fullInput.startsWith('/')) {
-      await handleSlashCommand(fullInput, config);
+      const result = await handleSlashCommand(fullInput, config);
+      if (result === 'exit') {
+        shouldExit = true;
+        rl.close();
+        process.exit(0);
+        return;
+      }
       askQuestion();
       return;
     }
@@ -263,9 +275,9 @@ async function startMimocodeChat(config: Config, skipMenu = false) {
       });
       
       spinner.stop();
-      // Si rien n'a été streamé (cas des réponses ultra-rapides sans callback activé à temps)
       if (!streamedOutput && response.content) {
-        process.stdout.write(await marked.parse(response.content));
+        const parsed = await marked.parse(response.content);
+        process.stdout.write(parsed);
       } else if (streamedOutput) {
         process.stdout.write('\n');
       }
@@ -278,51 +290,76 @@ async function startMimocodeChat(config: Config, skipMenu = false) {
       }
     } finally {
       isProcessing = false;
-      askQuestion();
+      // Always ask next question unless exiting
+      if (!shouldExit) {
+        askQuestion();
+      }
     }
   });
 
+  rl.on('close', () => {
+    if (shouldExit) {
+      console.log(chalk.dim('\nGoodbye! 👋'));
+    }
+  });
+
+  // Handle keyboard events
   process.stdin.on('keypress', (str, key) => {
     if (!key) return;
 
+    // Ctrl+L: Clear screen
     if (key.ctrl && key.name === 'l') {
       console.clear();
       renderHeader(config);
-      rl.prompt();
+      if (!isProcessing && !shouldExit) {
+        rl.prompt();
+      }
     }
 
+    // Ctrl+C: Interrupt or exit
     if (key.ctrl && key.name === 'c') {
       if (isProcessing) {
         abortController.abort();
       } else {
+        shouldExit = true;
+        rl.close();
         process.exit(0);
       }
     }
 
+    // Escape key handling
     if (key.name === 'escape') {
       escCount++;
       if (isProcessing) {
         if (escCount === 1) {
-          console.log(chalk.yellow('\nInterruption (Esc again to cancel request)...'));
+          console.log(chalk.yellow('\n⚠️  Press Esc again to cancel the current request...'));
         } else if (escCount >= 2) {
           abortController.abort();
           escCount = 0;
         }
       } else {
+        // Clear current line
         (rl as any).line = '';
         (rl as any).cursor = 0;
         (rl as any)._refreshLine();
         escCount = 0;
       }
+      // Reset escCount after a delay
+      setTimeout(() => { escCount = 0; }, 1000);
     }
 
-    if (key.name === 'up' && historyIndex > 0) {
-      historyIndex--;
-      (rl as any).line = messageHistory[historyIndex] || '';
-      (rl as any).cursor = (rl as any).line.length;
-      (rl as any)._refreshLine();
+    // Arrow up: Previous history
+    if (key.name === 'up' && !isProcessing) {
+      if (historyIndex > 0) {
+        historyIndex--;
+        (rl as any).line = messageHistory[historyIndex] || '';
+        (rl as any).cursor = (rl as any).line.length;
+        (rl as any)._refreshLine();
+      }
     }
-    if (key.name === 'down') {
+    
+    // Arrow down: Next history
+    if (key.name === 'down' && !isProcessing) {
       if (historyIndex < messageHistory.length - 1) {
         historyIndex++;
         (rl as any).line = messageHistory[historyIndex] || '';
@@ -336,19 +373,29 @@ async function startMimocodeChat(config: Config, skipMenu = false) {
       }
     }
 
-    if (key.name === 'tab') {
+    // Tab: Autocomplete commands
+    if (key.name === 'tab' && !isProcessing) {
       const line = (rl as any).line;
       if (line.startsWith('/')) {
         const search = line.slice(1).toLowerCase();
-        const found = slashCommands.find(c => c.name.startsWith(search));
-        if (found) {
-          (rl as any).line = `/${found.name}`;
+        const matches = slashCommands.filter(c => c.name.startsWith(search));
+        if (matches.length === 1) {
+          (rl as any).line = `/${matches[0].name}`;
           (rl as any).cursor = (rl as any).line.length;
           (rl as any)._refreshLine();
+        } else if (matches.length > 1) {
+          console.log('\n' + matches.map(m => chalk.green(`  /${m.name}`) + chalk.dim(` - ${m.description}`)).join('\n'));
+          rl.prompt();
         }
       }
     }
   });
+
+  // Enable keypress events
+  readline.emitKeypressEvents(process.stdin);
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true);
+  }
 
   askQuestion();
 }
@@ -364,10 +411,10 @@ program
     const config = await loadConfig();
     
     if (commandArgs && commandArgs.length > 0) {
-      // Si des arguments sont présents, on les traite comme une commande unique
+      // If arguments are present, treat as a single command
       const cmd = commandArgs.join(' ');
       
-      // Initialisation de l'engine avant traitement
+      // Initialize engine before processing
       await engine.init(process.cwd());
       
       const spinner = ora({ text: chalk.cyan(`Executing: ${cmd}...`), spinner: 'dots' }).start();
@@ -395,26 +442,18 @@ program
         if (!streamedOutput && response.content) {
           process.stdout.write(await marked.parse(response.content));
         } else if (streamedOutput) {
-          // Add a small final check to see if there's any remaining unprinted text
-          const finalClean = response.content.substring(streamedOutput.length);
-          if (finalClean.trim()) {
-             // process.stdout.write(finalClean); // Optional, might cause double text
-          }
           process.stdout.write('\n');
         }
         
-        // Transition automatique vers le mode interactif (ATC Style)
-        // On ne l'appelle que si on n'est pas déjà dans une boucle readline
-        if (!program.opts().chatStarted) {
-          await startMimocodeChat(config, true);
-        }
+        // Automatically transition to interactive mode
+        await startMimocodeChat(config, true);
       } catch (e: any) {
         spinner.stop();
         console.error(chalk.red(`\nError: ${e.message}`));
         process.exit(1);
       }
     } else {
-      // Sinon, lancer le mode interactif
+      // Launch interactive mode
       await startMimocodeChat(config);
     }
   });

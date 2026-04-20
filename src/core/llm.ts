@@ -275,7 +275,6 @@ Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
           textToDisplay = textToDisplay.replace(/<tool_call[\s\S]*?(?:\/>|<\/tool_call>)/gi, '');
           
           // 2. Cacher la balise en cours (non fermée)
-          // On cherche n'importe quoi qui commence par <tool pour éviter les flashs
           const openTagIndex = textToDisplay.toLowerCase().lastIndexOf('<tool');
           const closeTagIndex = textToDisplay.toLowerCase().lastIndexOf('>');
           
@@ -301,10 +300,9 @@ Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
       currentTurnResponse = await callLLM(config, chatMessagesWithTools, options, signal);
     }
     
-    // Afficher le reste du texte si non streamé ou si la boucle de stream a fini
+    // Afficher le reste du texte
     let finalNewText = currentTurnResponse.substring(printedLength);
     if (finalNewText && onTextChunk) {
-      // Nettoyage final agressif pour éviter les balises résiduelles
       finalNewText = finalNewText.replace(/<tool_call[\s\S]*?(?:\/>|<\/tool_call>|$)/gi, '');
       if (finalNewText.trim()) {
         onTextChunk(finalNewText);
@@ -333,9 +331,10 @@ Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
             if (onToolStart) onToolStart(name, normalizedArgs);
             else if (onTextChunk) onTextChunk(` ⚡ `);
             
-            // Report to web interface
             await reportEvent('tool_start', { name, args: normalizedArgs });
 
+            // Gestion des permissions
+            let permissionGranted = true;
             if (name === 'run_command' || name === 'delete_file' || name === 'write_file') {
               let details = '';
               let cmdToCheck = '';
@@ -354,6 +353,7 @@ Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
                   if (oldContent !== normalizedArgs.content) {
                     details = `The agent wants to edit file: \`${normalizedArgs.filePath}\`\n\n${getDiff(oldContent, normalizedArgs.content, normalizedArgs.filePath)}`;
                   } else {
+                    // Pas de changement, on exécute directement
                     const result = await tool.execute(normalizedArgs);
                     toolResults += `\n[Result of ${name}]:\n${result}\n`;
                     await onToolCall?.(name, normalizedArgs, result);
@@ -369,26 +369,23 @@ Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
               if (!allowed) {
                 toolResults += `\n[Result of ${name}]: Operation skipped by user.\n`;
                 await onToolCall?.(name, normalizedArgs, 'Skipped', 'Permission denied');
-                continue;
-              }
-              if (instruction && name === 'run_command') {
+                permissionGranted = false;
+              } else if (instruction && name === 'run_command') {
                 normalizedArgs.command = `${normalizedArgs.command} # Instruction: ${instruction}`;
               }
             }
             
-            const result = await tool.execute(normalizedArgs);
-            toolResults += `\n[Result of ${name}]:\n${result}\n`;
-            await onToolCall?.(name, normalizedArgs, result);
-            
-            // Report to web interface
-            await reportEvent('tool_success', { name, args: normalizedArgs, result });
+            if (permissionGranted) {
+              const result = await tool.execute(normalizedArgs);
+              toolResults += `\n[Result of ${name}]:\n${result}\n`;
+              await onToolCall?.(name, normalizedArgs, result);
+              await reportEvent('tool_success', { name, args: normalizedArgs, result });
+            }
             
           } catch (e: any) {
             const error = `Error executing ${name}: ${e.message}`;
             toolResults += `\n[Error in ${name}]:\n${error}\n`;
             await onToolCall?.(name, args, '', error);
-            
-            // Report to web interface
             await reportEvent('tool_error', { name, args, error });
           }
         } else {
@@ -414,7 +411,6 @@ Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
 
   const newMessages = chatMessagesWithTools.slice(recentMessages.length + 1);
   
-  // Nettoyage final de la réponse complète pour l'affichage
   let cleanedFullResponse = fullResponse.replace(/<tool_call[\s\S]*?(?:\/>|<\/tool_call>|$)/gi, '').trim();
   
   if (!cleanedFullResponse && turnCount > 1) cleanedFullResponse = "Task completed.";
@@ -455,15 +451,10 @@ export async function* callLLMStream(config: Config, messages: Message[], option
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);
-      // We try to fetch the base endpoint or a common health check
-      await fetch(endpoint, { method: 'HEAD', signal: controller.signal }).catch(() => {
-        // Some endpoints might not support HEAD, so we just check if we can connect
-      });
+      await fetch(endpoint, { method: 'HEAD', signal: controller.signal }).catch(() => {});
       clearTimeout(timeoutId);
     } catch (e) {
-      if (e instanceof Error && e.name === 'AbortError') {
-        // Ignore timeout
-      } else {
+      if (e instanceof Error && e.name !== 'AbortError') {
         throw new Error(`Connection to ${runtime} failed at ${endpoint}. Is it running?`);
       }
     }
