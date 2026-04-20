@@ -356,9 +356,22 @@ program
         });
         
         spinner.stop();
-        console.log(`\n${chalk.hex('#6366f1')('✦')} Result:`);
+        process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} Result:\n`);
         console.log(await marked.parse(response.content));
-        process.exit(0);
+        
+        // Au lieu de sortir immédiatement, demander si l'utilisateur veut continuer en chat
+        const { stay } = await inquirer.prompt([{
+          type: 'confirm',
+          name: 'stay',
+          message: 'Would you like to continue in interactive chat mode?',
+          default: false
+        }]);
+
+        if (stay) {
+          await startMimocodeChat(config);
+        } else {
+          process.exit(0);
+        }
       } catch (e: any) {
         spinner.stop();
         console.error(chalk.red(`\nError: ${e.message}`));

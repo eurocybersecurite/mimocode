@@ -548,18 +548,6 @@ export default function App() {
     }
   };
 
-  const handleRunSkill = (name: string) => {
-    setActiveTab('terminal');
-    setTimeout(() => {
-      if (xtermRef.current) {
-        xtermRef.current.focus();
-        const cmd = `mimocode skill run ${name}`;
-        xtermRef.current.write(cmd);
-        executeCommand(cmd);
-      }
-    }, 100);
-  };
-
   const approveSkill = async (id: string) => {
     try {
       await axios.post('/api/skills/pending/approve', { id });
@@ -1523,7 +1511,6 @@ export default function App() {
                 setSkillSearchTerm={setSkillSearchTerm}
                 skills={skills}
                 setConfirmDeleteSkill={setConfirmDeleteSkill}
-                handleRunSkill={handleRunSkill}
                 fetchSkills={fetchSkills}
               />
             )}
