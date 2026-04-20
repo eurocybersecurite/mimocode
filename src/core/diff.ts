@@ -4,7 +4,7 @@ import chalk from 'chalk';
 export function getDiff(oldContent: string, newContent: string, fileName: string): string {
   const changes = diffLines(oldContent, newContent);
   let output = chalk.bold.blue(`📝 Changes in ${fileName}:\n`);
-  output += chalk.dim(`┌${'─'.repeat(78)}┐\n`);
+  output += chalk.dim(`─`.repeat(80) + `\n`);
   
   let oldLineNum = 1;
   let newLineNum = 1;
@@ -42,7 +42,7 @@ export function getDiff(oldContent: string, newContent: string, fileName: string
       }
     }
   });
-  output += chalk.dim(`└${'─'.repeat(78)}┘\n`);
+  output += chalk.dim(`─`.repeat(80) + `\n`);
   return output;
 }
 

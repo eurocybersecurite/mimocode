@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "mimocode: debug cli",
+      "program": "${workspaceFolder}/src/cli/index.ts",
+      "args": [
+        "chat"
+      ],
+      "runtimeArgs": [
+        "--loader",
+        "ts-node/esm"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "mimocode: attach to server",
+      "port": 9229,
+      "restart": true,
+      "protocol": "inspector"
+    }
+  ]
+}
