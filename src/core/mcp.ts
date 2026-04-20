@@ -78,6 +78,10 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
       const added = Math.max(0, newLines - oldLines);
       const removed = Math.max(0, oldLines - newLines);
 
+      if (added === 0 && removed === 0 && oldLines > 0) {
+        return `Error: No changes detected (+0, -0). You provided the exact same content as the existing file. Please make sure to include your new additions or finalizations in the 'content' argument.`;
+      }
+
       return `✓ Edit ${filePath} → Accepted (+${added}, -${removed})`;
       },
       },
