@@ -51,7 +51,6 @@ const slashCommands = [
 function renderHelp() {
   console.log(`\n${chalk.bold.hex('#6366f1')(' Mimocode Help Menu ')}`);
   console.log(chalk.dim('─'.repeat(40)));
-  
   const categories = [...new Set(slashCommands.map(c => c.category))];
   for (const cat of categories) {
     console.log(`\n${chalk.bold(cat)}:`);
@@ -86,21 +85,17 @@ function renderHeader(config: any) {
   const usedMem = totalMem - freeMem;
   const load = os.loadavg()[0];
   const cols = process.stdout.columns || 80;
-
   console.log(`\n${chalk.bold.hex('#6366f1')('Mimocode ATC Agent')} ${chalk.dim(version)}`);
   console.log(chalk.dim('─'.repeat(cols)));
-  
   const statusLine = [
     chalk.bold('Backend: ') + chalk.cyan(config.runtime),
     chalk.bold('Model: ') + chalk.cyan(config.model),
     chalk.bold('Mode: ') + chalk.green('Full Access')
   ].join(chalk.dim(' | '));
-  
   const statsLine = [
     chalk.bold('CPU Load: ') + chalk.yellow(`${load.toFixed(2)}`),
     chalk.bold('RAM: ') + chalk.yellow(`${usedMem.toFixed(1)}GB / ${totalMem.toFixed(1)}GB`)
   ].join(chalk.dim(' | '));
-
   console.log(statusLine);
   console.log(statsLine);
   console.log(chalk.bold('Workspace: ') + chalk.dim(process.cwd()));
@@ -109,8 +104,6 @@ function renderHeader(config: any) {
 
 async function startMimocodeChat(config: Config, skipMenu = false): Promise<void> {
   await loadCLIHistory();
-
-  let action = 'chat';
   if (!skipMenu) {
     const res = await inquirer.prompt([{
       type: 'list',
@@ -123,290 +116,184 @@ async function startMimocodeChat(config: Config, skipMenu = false): Promise<void
         { name: 'Exit', value: 'exit' }
       ]
     }]);
-    action = res.action;
-  }
-
-  if (action === 'exit') process.exit(0);
-  if (action === 'setup') {
-    const { runSetup } = await import('../core/config');
-    await runSetup(config);
-    return startMimocodeChat(config);
-  }
-  if (action === 'clear') {
-    const sessionId = await getOrCreateSession(process.cwd());
-    await clearSessionMessages(sessionId);
-    messageHistory = [];
-    await saveCLIHistory();
-    console.log(chalk.dim('History cleared.'));
-    return startMimocodeChat(config);
+    if (res.action === 'exit') process.exit(0);
+    if (res.action === 'setup') {
+      const { runSetup } = await import('../core/config');
+      await runSetup(config);
+      return startMimocodeChat(config);
+    }
+    if (res.action === 'clear') {
+      const sessionId = await getOrCreateSession(process.cwd());
+      await clearSessionMessages(sessionId);
+      messageHistory = [];
+      await saveCLIHistory();
+      console.log(chalk.dim('History cleared.'));
+      return startMimocodeChat(config);
+    }
   }
 
   await engine.init(process.cwd());
   console.clear();
   renderHeader(config);
 
-  while (true) {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      prompt: chalk.bold.hex('#6366f1')('> ')
-    });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: chalk.bold.hex('#6366f1')('> ')
+  });
 
-    const exitRequested = await new Promise<boolean>((resolve) => {
-      let isProcessing = false;
-      let abortController = new AbortController();
-      let escCount = 0;
-      let escTimer: any = null;
+  let isProcessing = false;
+  let abortController = new AbortController();
 
-      const ask = () => { 
-        if (!isProcessing) {
-          rl.prompt(); 
-        }
-      };
+  const ask = () => { if (!isProcessing) rl.prompt(); };
 
-      rl.on('line', async (line) => {
-        if (isProcessing) return;
-        const input = line.trim();
-        if (!input) { ask(); return; }
+  rl.on('line', async (line) => {
+    if (isProcessing) return;
+    const input = line.trim();
+    if (!input) { ask(); return; }
 
-        // Handle Slash Commands
-        if (input.startsWith('/')) {
-          const parts = input.substring(1).split(' ');
-          const cmdPart = parts[0].toLowerCase();
-          const args = parts.slice(1).join(' ');
-          
-          // Lenient exit check
-          if (cmdPart === 'exit' || cmdPart === 'quit' || cmdPart === 'exite') {
-            resolve(true);
-            rl.close();
-            return;
-          }
+    const parts = input.split(' ');
+    const cmdInput = parts[0].toLowerCase();
+    const args = parts.slice(1).join(' ');
 
-          const cmd = slashCommands.find(c => c.name === cmdPart || c.alias === cmdPart);
-          
-          if (cmd) {
-            if (cmd.name === 'clear') {
-              const sessionId = await getOrCreateSession(process.cwd());
-              await clearSessionMessages(sessionId);
-              console.log(chalk.dim('History cleared.'));
-              ask(); return;
-            }
-            if (cmd.name === 'help') { renderHelp(); ask(); return; }
-            if (cmd.name === 'status') { renderHeader(config); ask(); return; }
-            
-            if (cmd.name === 'agents') {
-              const agents = engine.getAgents();
-              console.log(`\n${chalk.bold('Active Agents:')}`);
-              agents.forEach(a => console.log(`  ${chalk.cyan('@' + a.name.padEnd(12))} ${chalk.dim('─')} ${a.description}`));
-              console.log(''); ask(); return;
-            }
-            if (cmd.name === 'skills') {
-              const skills = engine.getSkills();
-              console.log(`\n${chalk.bold('Learned Skills:')}`);
-              skills.forEach(s => console.log(`  ${chalk.yellow(s.name.padEnd(12))} ${chalk.dim('─')} ${s.description}`));
-              console.log(''); ask(); return;
-            }
-            if (cmd.name === 'plan') {
-              if (!args) { console.log(chalk.red('Usage: /plan <task description>')); ask(); return; }
-              const { generatePlan, executePlan } = await import('../core/planner');
-              isProcessing = true;
-              const spinner = ora('Generating plan...').start();
-              try {
-                const steps = await generatePlan(config, args);
-                spinner.succeed('Plan generated.');
-                await executePlan(config, steps);
-              } catch (e: any) {
-                spinner.fail(`Plan failed: ${e.message}`);
-              }
-              isProcessing = false;
-              ask(); return;
-            }
-            if (cmd.name === 'cd') {
-              if (!args) { console.log(chalk.red('Usage: /cd <directory>')); ask(); return; }
-              try {
-                const targetPath = path.resolve(process.cwd(), args);
-                if (fs.existsSync(targetPath)) {
-                  process.chdir(targetPath);
-                  await engine.init(targetPath);
-                  console.log(chalk.green(`\n📂 Workspace changed to: ${targetPath}`));
-                } else {
-                  console.log(chalk.red(`Directory not found: ${targetPath}`));
-                }
-              } catch (e: any) { console.log(chalk.red(`Error: ${e.message}`)); }
-              ask(); return;
-            }
-            if (cmd.name === 'rag') {
-              const { queryRAG } = await import('../core/rag');
-              if (!args) { console.log(chalk.red('Usage: /rag <query>')); ask(); return; }
-              isProcessing = true;
-              const spinner = ora('Searching knowledge base...').start();
-              try {
-                const result = await queryRAG(args);
-                spinner.stop();
-                console.log(`\n${chalk.bold('RAG Result:')}\n${result}\n`);
-              } catch (e: any) { spinner.fail(`RAG error: ${e.message}`); }
-              isProcessing = false;
-              ask(); return;
-            }
-            if (cmd.name === 'model') {
-              if (!args) { console.log(chalk.bold(`Current Model: ${config.model}\nUsage: /model <model_name>`)); ask(); return; }
-              const { saveConfig } = await import('../core/config');
-              config.model = args;
-              await saveConfig(config);
-              console.log(chalk.green(`Model switched to: ${args}`));
-              ask(); return;
-            }
-            if (cmd.name === 'mcp') {
-              const { mcpTools } = await import('../core/mcp');
-              console.log(`\n${chalk.bold('MCP Tool Connectors:')}`);
-              mcpTools.forEach(t => console.log(`  ${chalk.magenta(t.name.padEnd(20))} ${chalk.dim('─')} ${t.description}`));
-              console.log(''); ask(); return;
-            }
-            if (cmd.name === 'heal') {
-              const { healSystem } = await import('../core/heal');
-              const spinner = ora('Analyzing codebase for issues...').start();
-              const report = await healSystem(config);
-              spinner.succeed('Analysis complete.');
-              console.log(report);
-              ask(); return;
-            }
-          }
-        }
-
-        if (input === '/exit' || input === '/quit') {
-          rl.close();
-          resolve(true);
-          return;
-        }
-
-        isProcessing = true;
-        abortController = new AbortController();
-
-        if (messageHistory[messageHistory.length - 1] !== input) {
-          messageHistory.push(input);
-          await saveCLIHistory();
-          historyIndex = messageHistory.length;
-        }
-
-        const spinner = ora({ text: chalk.cyan('Thinking...'), spinner: 'dots' }).start();
-        
-        try {
-          process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} `);
-          let streamedOutput = '';
-          let isFirstChunk = true;
-
-          const response = await engine.process(input, (name, args, result) => {
-            if (isFirstChunk) { spinner.stop(); isFirstChunk = false; }
-            if (result && (result.startsWith('✓') || result.includes('→'))) {
-              process.stdout.write(`\r\x1b[K  ${chalk.dim(result)}\n`);
-            }
-          }, abortController.signal, (chunk) => {
-            if (isFirstChunk) {
-              spinner.stop();
-              isFirstChunk = false;
-            }
-            process.stdout.write(chunk);
-            streamedOutput += chunk;
-          });
-
-          spinner.stop();
-          if (!streamedOutput && response.content) {
-            process.stdout.write(await marked.parse(response.content));
-          } else {
-            process.stdout.write('\n');
-          }
-        } catch (e: any) {
-          spinner.stop();
-          if (e.message !== 'Operation aborted by user') {
-            console.log(chalk.red(`\nError: ${e.message}`));
-          }
-        } finally {
-          isProcessing = false;
-          ask();
-        }
-      });
-
-      const onKeyPress = (str: string, key: any) => {
-        if (!key) return;
-
-        if (key.name === 'escape') {
-          if (isProcessing) {
-            abortController.abort();
-            isProcessing = false;
-            console.log(chalk.yellow('\nCancelled.'));
-            ask();
-            return;
-          }
-
-          escCount++;
-          if (escTimer) clearTimeout(escTimer);
-
-          if (escCount >= 2) {
-            rl.close();
-            resolve(true);
-            return;
-          }
-
-          escTimer = setTimeout(() => { escCount = 0; }, 500);
-
-          if ((rl as any).line.length > 0) {
-            (rl as any).line = '';
-            (rl as any).cursor = 0;
-            (rl as any)._refreshLine();
-          }
-          return;
-        }
-
-        if (key.ctrl && key.name === 'c') {
-          if (isProcessing) {
-            abortController.abort();
-            isProcessing = false;
-            console.log(chalk.yellow('\nCancelled.'));
-            ask();
-          } else {
-            rl.close();
-            resolve(true);
-          }
-        }
-
-        if (key.name === 'up' && historyIndex > 0 && !isProcessing) {
-          historyIndex--;
-          (rl as any).line = messageHistory[historyIndex];
-          (rl as any).cursor = (rl as any).line.length;
-          (rl as any)._refreshLine();
-        }
-        if (key.name === 'down' && !isProcessing) {
-          if (historyIndex < messageHistory.length - 1) {
-            historyIndex++;
-            (rl as any).line = messageHistory[historyIndex];
-            (rl as any).cursor = (rl as any).line.length;
-            (rl as any)._refreshLine();
-          } else {
-            historyIndex = messageHistory.length;
-            (rl as any).line = '';
-            (rl as any).cursor = 0;
-            (rl as any)._refreshLine();
-          }
-        }
-      };
-
-      process.stdin.on('keypress', onKeyPress);
-
-      rl.on('close', () => {
-        process.stdin.removeListener('keypress', onKeyPress);
-        resolve(false); // If it closed without explicit exit, we might want to restart
-      });
-
-      ask();
-    });
-
-    if (exitRequested) {
+    if (cmdInput === '/exit' || cmdInput === '/quit' || cmdInput === '/exite') {
+      rl.close();
       process.exit(0);
     }
-    
-    // If we reached here, rl closed unexpectedly, so the loop will restart it
-    // We don't want to clear the screen or show header again, just re-prompt
-  }
+
+    if (input.startsWith('/')) {
+      const cmdPart = cmdInput.substring(1);
+      const cmd = slashCommands.find(c => c.name === cmdPart || c.alias === cmdPart);
+      if (cmd) {
+        if (cmd.name === 'clear') {
+          const sessionId = await getOrCreateSession(process.cwd());
+          await clearSessionMessages(sessionId);
+          console.log(chalk.dim('History cleared.'));
+          ask(); return;
+        }
+        if (cmd.name === 'help') { renderHelp(); ask(); return; }
+        if (cmd.name === 'status') { renderHeader(config); ask(); return; }
+        if (cmd.name === 'agents') {
+          const agents = engine.getAgents();
+          console.log(`\n${chalk.bold('Active Agents:')}`);
+          agents.forEach(a => console.log(`  ${chalk.cyan('@' + a.name.padEnd(12))} ${chalk.dim('─')} ${a.description}`));
+          console.log(''); ask(); return;
+        }
+        if (cmd.name === 'skills') {
+          const skills = engine.getSkills();
+          console.log(`\n${chalk.bold('Learned Skills:')}`);
+          skills.forEach(s => console.log(`  ${chalk.yellow(s.name.padEnd(12))} ${chalk.dim('─')} ${s.description}`));
+          console.log(''); ask(); return;
+        }
+        if (cmd.name === 'plan') {
+          if (!args) { console.log(chalk.red('Usage: /plan <task>')); ask(); return; }
+          const { generatePlan, executePlan } = await import('../core/planner');
+          isProcessing = true;
+          const spinner = ora('Planning...').start();
+          try { const steps = await generatePlan(config, args); spinner.succeed(); await executePlan(config, steps); }
+          catch (e: any) { spinner.fail(e.message); }
+          isProcessing = false; ask(); return;
+        }
+        if (cmd.name === 'cd') {
+          if (!args) { console.log(chalk.red('Usage: /cd <dir>')); ask(); return; }
+          try {
+            const target = path.resolve(process.cwd(), args);
+            if (fs.existsSync(target)) { process.chdir(target); await engine.init(target); console.log(chalk.green(`\n📂 ${target}`)); }
+            else console.log(chalk.red('Not found'));
+          } catch (e: any) { console.log(chalk.red(e.message)); }
+          ask(); return;
+        }
+        if (cmd.name === 'heal') {
+          const { healSystem } = await import('../core/heal');
+          const spinner = ora('Healing...').start();
+          const report = await healSystem(config);
+          spinner.succeed(); console.log(report);
+          ask(); return;
+        }
+      }
+    }
+
+    isProcessing = true;
+    abortController = new AbortController();
+    if (messageHistory[messageHistory.length - 1] !== input) {
+      messageHistory.push(input);
+      await saveCLIHistory();
+      historyIndex = messageHistory.length;
+    }
+
+    const spinner = ora({ text: chalk.cyan('Thinking...'), spinner: 'dots' }).start();
+    try {
+      process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} `);
+      let streamedOutput = '';
+      let isFirstChunk = true;
+      const response = await engine.process(input, (name, args, result) => {
+        if (isFirstChunk) { spinner.stop(); isFirstChunk = false; }
+        if (result && (result.startsWith('✓') || result.includes('→'))) {
+          process.stdout.write(`\r\x1b[K  ${chalk.dim(result)}\n`);
+        }
+      }, abortController.signal, (chunk) => {
+        if (isFirstChunk) { spinner.stop(); isFirstChunk = false; }
+        process.stdout.write(chunk);
+        streamedOutput += chunk;
+      });
+      spinner.stop();
+      if (!streamedOutput && response.content) process.stdout.write(await marked.parse(response.content));
+      else process.stdout.write('\n');
+    } catch (e: any) {
+      spinner.stop();
+      if (e.message !== 'Operation aborted by user') console.log(chalk.red(`\nError: ${e.message}`));
+    } finally {
+      isProcessing = false;
+      ask();
+    }
+  });
+
+  process.stdin.on('keypress', (str, key) => {
+    if (!key) return;
+    if (key.name === 'escape') {
+      if (isProcessing) {
+        abortController.abort();
+        isProcessing = false;
+        console.log(chalk.yellow('\nCancelled.'));
+        ask();
+      } else {
+        (rl as any).line = '';
+        (rl as any).cursor = 0;
+        (rl as any)._refreshLine();
+      }
+    }
+    if (key.ctrl && key.name === 'c') {
+      if (isProcessing) {
+        abortController.abort();
+        isProcessing = false;
+        ask();
+      } else {
+        console.log(chalk.dim('\nUse /exit to quit.'));
+        ask();
+      }
+    }
+    if (key.name === 'up' && historyIndex > 0 && !isProcessing) {
+      historyIndex--;
+      (rl as any).line = messageHistory[historyIndex];
+      (rl as any).cursor = (rl as any).line.length;
+      (rl as any)._refreshLine();
+    }
+    if (key.name === 'down' && !isProcessing) {
+      if (historyIndex < messageHistory.length - 1) {
+        historyIndex++;
+        (rl as any).line = messageHistory[historyIndex];
+        (rl as any).cursor = (rl as any).line.length;
+        (rl as any)._refreshLine();
+      } else {
+        historyIndex = messageHistory.length;
+        (rl as any).line = '';
+        (rl as any).cursor = 0;
+        (rl as any)._refreshLine();
+      }
+    }
+  });
+
+  ask();
 }
 
 const program = new Command();
@@ -420,38 +307,25 @@ program
       await engine.init(process.cwd());
       console.clear();
       renderHeader(config);
-      
       const spinner = ora({ text: chalk.cyan(`Executing: ${cmd}...`), spinner: 'dots' }).start();
       try {
         process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} Result:\n`);
         let streamedOutput = '';
         let isFirstChunk = true;
-
         const response = await engine.process(cmd, (name, args, result) => {
           if (isFirstChunk) { spinner.stop(); isFirstChunk = false; }
           if (result && (result.startsWith('✓') || result.includes('→'))) {
             process.stdout.write(`\r\x1b[K  ${chalk.dim(result)}\n`);
           }
         }, undefined, (chunk) => {
-          if (isFirstChunk) {
-            spinner.stop();
-            isFirstChunk = false;
-          }
+          if (isFirstChunk) { spinner.stop(); isFirstChunk = false; }
           process.stdout.write(chunk);
           streamedOutput += chunk;
         });
         spinner.stop();
-        if (!streamedOutput && response.content) {
-          process.stdout.write(await marked.parse(response.content));
-        } else {
-          process.stdout.write('\n');
-        }
-      } catch (e: any) {
-        spinner.stop();
-        console.error(chalk.red(`\nError: ${e.message}`));
-      }
-      
-      // Always stay in interactive mode
+        if (!streamedOutput && response.content) process.stdout.write(await marked.parse(response.content));
+        else process.stdout.write('\n');
+      } catch (e: any) { spinner.stop(); console.error(chalk.red(`\nError: ${e.message}`)); }
       await startMimocodeChat(config, true);
     } else {
       await startMimocodeChat(config);
@@ -459,4 +333,3 @@ program
   });
 
 program.parseAsync(process.argv);
-
