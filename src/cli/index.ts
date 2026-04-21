@@ -172,12 +172,19 @@ async function startMimocodeChat(config: Config, skipMenu = false): Promise<void
         // Handle Slash Commands
         if (input.startsWith('/')) {
           const parts = input.substring(1).split(' ');
-          const cmdPart = parts[0];
+          const cmdPart = parts[0].toLowerCase();
           const args = parts.slice(1).join(' ');
+          
+          // Lenient exit check
+          if (cmdPart === 'exit' || cmdPart === 'quit' || cmdPart === 'exite') {
+            resolve(true);
+            rl.close();
+            return;
+          }
+
           const cmd = slashCommands.find(c => c.name === cmdPart || c.alias === cmdPart);
           
           if (cmd) {
-            if (cmd.name === 'exit') { rl.close(); resolve(true); return; }
             if (cmd.name === 'clear') {
               const sessionId = await getOrCreateSession(process.cwd());
               await clearSessionMessages(sessionId);
@@ -199,13 +206,54 @@ async function startMimocodeChat(config: Config, skipMenu = false): Promise<void
               skills.forEach(s => console.log(`  ${chalk.yellow(s.name.padEnd(12))} ${chalk.dim('─')} ${s.description}`));
               console.log(''); ask(); return;
             }
+            if (cmd.name === 'plan') {
+              if (!args) { console.log(chalk.red('Usage: /plan <task description>')); ask(); return; }
+              const { generatePlan, executePlan } = await import('../core/planner');
+              isProcessing = true;
+              const spinner = ora('Generating plan...').start();
+              try {
+                const steps = await generatePlan(config, args);
+                spinner.succeed('Plan generated.');
+                await executePlan(config, steps);
+              } catch (e: any) {
+                spinner.fail(`Plan failed: ${e.message}`);
+              }
+              isProcessing = false;
+              ask(); return;
+            }
             if (cmd.name === 'cd') {
               if (!args) { console.log(chalk.red('Usage: /cd <directory>')); ask(); return; }
               try {
-                process.chdir(path.resolve(process.cwd(), args));
-                await engine.init(process.cwd());
-                console.log(chalk.green(`Workspace changed to: ${process.cwd()}`));
+                const targetPath = path.resolve(process.cwd(), args);
+                if (fs.existsSync(targetPath)) {
+                  process.chdir(targetPath);
+                  await engine.init(targetPath);
+                  console.log(chalk.green(`\n📂 Workspace changed to: ${targetPath}`));
+                } else {
+                  console.log(chalk.red(`Directory not found: ${targetPath}`));
+                }
               } catch (e: any) { console.log(chalk.red(`Error: ${e.message}`)); }
+              ask(); return;
+            }
+            if (cmd.name === 'rag') {
+              const { queryRAG } = await import('../core/rag');
+              if (!args) { console.log(chalk.red('Usage: /rag <query>')); ask(); return; }
+              isProcessing = true;
+              const spinner = ora('Searching knowledge base...').start();
+              try {
+                const result = await queryRAG(args);
+                spinner.stop();
+                console.log(`\n${chalk.bold('RAG Result:')}\n${result}\n`);
+              } catch (e: any) { spinner.fail(`RAG error: ${e.message}`); }
+              isProcessing = false;
+              ask(); return;
+            }
+            if (cmd.name === 'model') {
+              if (!args) { console.log(chalk.bold(`Current Model: ${config.model}\nUsage: /model <model_name>`)); ask(); return; }
+              const { saveConfig } = await import('../core/config');
+              config.model = args;
+              await saveConfig(config);
+              console.log(chalk.green(`Model switched to: ${args}`));
               ask(); return;
             }
             if (cmd.name === 'mcp') {
@@ -222,9 +270,6 @@ async function startMimocodeChat(config: Config, skipMenu = false): Promise<void
               console.log(report);
               ask(); return;
             }
-            // Route other commands (plan, rag, model, edit) to engine as a natural request
-            // or keep implementing them here. For now, let's treat them as normal input
-            // if they are not explicitly handled.
           }
         }
 

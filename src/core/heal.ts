@@ -108,10 +108,20 @@ export async function healSystem(config: Config): Promise<string> {
   if (config.mcpServers?.length) {
     report += `🔍 Checking ${config.mcpServers.length} MCP servers...\n`;
     for (const server of config.mcpServers) {
-      if (server.type === 'stdio' && !await fs.pathExists(server.command)) {
-        report += `❌ MCP Server (${server.name}): Command not found at ${server.command}\n`;
-      } else {
-        report += `✅ MCP Server (${server.name}): Configured.\n`;
+      try {
+        if (server.type === 'stdio') {
+          const cmd = server.command.split(' ')[0];
+          try {
+            execSync(`which ${cmd}`, { stdio: 'ignore' });
+            report += `✅ MCP Server (${server.name}): Command '${cmd}' is available.\n`;
+          } catch (e) {
+            report += `❌ MCP Server (${server.name}): Command '${cmd}' NOT FOUND in PATH.\n`;
+          }
+        } else {
+          report += `✅ MCP Server (${server.name}): Configured.\n`;
+        }
+      } catch (e: any) {
+        report += `❌ MCP Server (${server.name}): Check failed - ${e.message}\n`;
       }
     }
   }
