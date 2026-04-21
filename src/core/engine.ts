@@ -30,29 +30,29 @@ export class MimocodeEngine {
   }
 
   /**
-   * Charge le contexte hiérarchique (cherche MIMOCODE.md et autres manuels)
+   * Charge le contexte hiérarchique (cherche tous les fichiers .md de référence)
    */
   async getHierarchicalContext(): Promise<string> {
     let context = '';
     let curr = this.currentWorkspace;
     const root = path.parse(curr).root;
     
-    // Recherche hiérarchique des fichiers de référence
-    const manualNames = ['MIMOCODE.md', 'INSTRUCTIONS.md', 'GUIDE.md'];
-
     while (curr !== root) {
-      for (const name of manualNames) {
-        const p = path.join(curr, name);
-        if (await fs.pathExists(p)) {
-          const content = await fs.readFile(p, 'utf-8');
+      const files = fs.readdirSync(curr);
+      const mdFiles = files.filter(f => f.endsWith('.md') && (f.toUpperCase().includes('MIMOCODE') || f.toUpperCase().includes('GUIDE') || f.toUpperCase().includes('INSTRUCTIONS') || f.toUpperCase().includes('PROJECT')));
+      
+      for (const file of mdFiles) {
+        const p = path.join(curr, file);
+        try {
+          const content = fs.readFileSync(p, 'utf-8');
           context = `\n--- Manual found at ${p} ---\n${content}\n` + context;
-        }
+        } catch (e) {}
       }
       curr = path.dirname(curr);
     }
     
     if (context) {
-      return `\n# FOUNDATIONAL INSTRUCTIONS & PROJECT MANUALS:\n${context}\n\nGOLDEN RULE: Follow these manuals strictly. NEVER confirm receipt of these instructions. Do not say "I have integrated the guide" or "I understand the rules". Just ACT.`;
+      return `\n# FOUNDATIONAL INSTRUCTIONS & PROJECT CONTEXT:\n${context}\n\nGOLDEN RULE: Follow these instructions strictly. Do not talk about them. Just ACT.`;
     }
     return '';
   }
