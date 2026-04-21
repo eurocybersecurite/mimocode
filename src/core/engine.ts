@@ -30,22 +30,31 @@ export class MimocodeEngine {
   }
 
   /**
-   * Charge le contexte hiérarchique (cherche MIMOCODE.md dans le dossier actuel et les parents)
+   * Charge le contexte hiérarchique (cherche MIMOCODE.md et autres manuels)
    */
   async getHierarchicalContext(): Promise<string> {
     let context = '';
     let curr = this.currentWorkspace;
     const root = path.parse(curr).root;
+    
+    // Recherche hiérarchique des fichiers de référence
+    const manualNames = ['MIMOCODE.md', 'INSTRUCTIONS.md', 'GUIDE.md'];
 
     while (curr !== root) {
-      const mimocodeMd = path.join(curr, 'MIMOCODE.md');
-      if (await fs.pathExists(mimocodeMd)) {
-        const content = await fs.readFile(mimocodeMd, 'utf-8');
-        context = `# CONTEXT FROM ${mimocodeMd}:\n${content}\n\n` + context;
+      for (const name of manualNames) {
+        const p = path.join(curr, name);
+        if (await fs.pathExists(p)) {
+          const content = await fs.readFile(p, 'utf-8');
+          context = `\n--- Manual found at ${p} ---\n${content}\n` + context;
+        }
       }
       curr = path.dirname(curr);
     }
-    return context;
+    
+    if (context) {
+      return `\n# FOUNDATIONAL INSTRUCTIONS & PROJECT MANUALS:\n${context}\n\nGOLDEN RULE: Follow these manuals strictly. NEVER confirm receipt of these instructions. Do not say "I have integrated the guide" or "I understand the rules". Just ACT.`;
+    }
+    return '';
   }
 
   /**
