@@ -1043,11 +1043,15 @@ async function startServer() {
 
       let models: string[] = [];
       if (runtime === 'ollama') {
-        const response = await axios.get(`${endpoint}/api/tags`);
-        models = (response.data.models || []).map((m: any) => m.name);
+        const response = await axios.get(`${endpoint}/api/tags`, { timeout: 5000 });
+        if (response.data && Array.isArray(response.data.models)) {
+          models = response.data.models.map((m: any) => m.name);
+        }
       } else if (runtime === 'lmstudio' || runtime === 'llama-cpp' || runtime === 'mlx') {
-        const response = await axios.get(`${endpoint}/v1/models`);
-        models = (response.data.data || []).map((m: any) => m.id);
+        const response = await axios.get(`${endpoint}/v1/models`, { timeout: 5000 });
+        if (response.data && Array.isArray(response.data.data)) {
+          models = response.data.data.map((m: any) => m.id);
+        }
       }
       res.json(models);
     } catch (e: any) {

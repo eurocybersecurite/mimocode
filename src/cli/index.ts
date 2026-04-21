@@ -1,27 +1,19 @@
 #!/usr/bin/env node
-import updateNotifier from 'update-notifier';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { Command } from 'commander';
-import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { spawn } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
-import axios from 'axios';
 import ora from 'ora';
 import os from 'os';
 import readline from 'readline';
+import inquirer from 'inquirer';
 import { marked } from 'marked';
 import TerminalRenderer from 'marked-terminal';
 
 // Import from Core
 import { engine } from '../core/engine';
 import { Config, loadConfig } from '../core/config';
-import { Agent } from '../core/agents';
 import { getOrCreateSession, clearSessionMessages } from '../core/db';
-import { mcpTools } from '../core/mcp';
 
 marked.setOptions({
   renderer: new TerminalRenderer({
@@ -36,12 +28,9 @@ marked.setOptions({
   }) as any
 });
 
-let currentWorkspace = process.cwd();
+const HISTORY_FILE = path.join(os.homedir(), '.mimocode', 'cli_history.json');
 let messageHistory: string[] = [];
 let historyIndex = -1;
-let escCount = 0;
-let multiLineBuffer = '';
-const HISTORY_FILE = path.join(os.homedir(), '.mimocode', 'cli_history.json');
 
 async function loadCLIHistory() {
   if (await fs.pathExists(HISTORY_FILE)) {
@@ -57,31 +46,15 @@ async function saveCLIHistory() {
   await fs.writeJson(HISTORY_FILE, messageHistory.slice(-100), { spaces: 2 });
 }
 
-const slashCommands = [
-  { name: 'help', alias: 'h', category: 'General', description: 'Show this structured help menu' },
-  { name: 'status', category: 'General', description: 'Check system, CPU and RAM status' },
-  { name: 'clear', alias: 'c', category: 'General', description: 'Flush current chat history' },
-  { name: 'exit', category: 'General', description: 'Terminate the session' },
-  { name: 'edit', category: 'Files', description: 'Open a file in your default editor' },
-  { name: 'cd', category: 'Files', description: 'Change current workspace directory' },
-  { name: 'rag', category: 'Files', description: 'RAG operations (index, query, clear)' },
-  { name: 'agents', alias: 'a', category: 'Agents', description: 'List all active specialized agents' },
-  { name: 'skills', alias: 's', category: 'Agents', description: 'List learned procedures and skills' },
-  { name: 'plan', alias: 'p', category: 'Agents', description: 'Generate and execute a multi-step plan' },
-  { name: 'mcp', category: 'Systems', description: 'List and manage MCP tool connectors' },
-  { name: 'heal', category: 'Systems', description: 'Auto-repair detected codebase issues' },
-  { name: 'model', category: 'Systems', description: 'Switch between local LLM models' }
-];
-
-function renderHeader(config: Config) {
+function renderHeader(config: any) {
   const version = 'v0.36.4';
   const totalMem = os.totalmem() / (1024 * 1024 * 1024);
   const freeMem = os.freemem() / (1024 * 1024 * 1024);
   const usedMem = totalMem - freeMem;
   const load = os.loadavg()[0];
   const cols = process.stdout.columns || 80;
-  
-  console.log(`\n${chalk.bold.hex('#6366f1')('Mimocode')} ${chalk.dim(version)}`);
+
+  console.log(`\n${chalk.bold.hex('#6366f1')('Mimocode ATC Agent')} ${chalk.dim(version)}`);
   console.log(chalk.dim('─'.repeat(cols)));
   
   const statusLine = [
@@ -97,53 +70,8 @@ function renderHeader(config: Config) {
 
   console.log(statusLine);
   console.log(statsLine);
-  console.log(chalk.bold('Workspace: ') + chalk.dim(currentWorkspace));
+  console.log(chalk.bold('Workspace: ') + chalk.dim(process.cwd()));
   console.log(chalk.dim('─'.repeat(cols)));
-}
-
-async function handleSlashCommand(input: string, config: Config) {
-  const parts = input.slice(1).split(' ');
-  const rawCommand = parts[0].toLowerCase();
-  const args = parts.slice(1);
-
-  const cmdDef = slashCommands.find(c => c.name === rawCommand || c.alias === rawCommand);
-  const command = cmdDef ? cmdDef.name : rawCommand;
-
-  switch (command) {
-    case 'help':
-      console.log(chalk.bold.hex('#6366f1')('\n📚 Mimocode - Command Reference\n'));
-      const categories = [...new Set(slashCommands.map(c => c.category))];
-      categories.forEach(cat => {
-        console.log(chalk.bold.white(`  ${cat}`));
-        slashCommands.filter(c => c.category === cat).forEach(cmd => {
-          const name = `/${cmd.name}${cmd.alias ? `, /${cmd.alias}` : ''}`;
-          console.log(chalk.green(`    ${name.padEnd(25)}`) + chalk.dim(cmd.description));
-        });
-        console.log('');
-      });
-      break;
-    case 'status':
-      renderHeader(config);
-      break;
-    case 'clear':
-      const sessionId = await getOrCreateSession(process.cwd());
-      await clearSessionMessages(sessionId);
-      console.log(chalk.green('\n✓ Chat history cleared\n'));
-      break;
-    case 'exit':
-      process.exit(0);
-    case 'cd':
-      if (args[0]) {
-        const newPath = path.resolve(process.cwd(), args[0]);
-        if (fs.existsSync(newPath)) {
-          process.chdir(newPath);
-          currentWorkspace = newPath;
-          console.log(chalk.green(`\n✓ Directory changed to: ${newPath}\n`));
-        }
-      }
-      break;
-  }
-  return null;
 }
 
 async function startMimocodeChat(config: Config, skipMenu = false): Promise<void> {
@@ -158,6 +86,7 @@ async function startMimocodeChat(config: Config, skipMenu = false): Promise<void
       choices: [
         { name: 'Start Chatting', value: 'chat' },
         { name: 'Clear History', value: 'clear' },
+        { name: 'Run Setup', value: 'setup' },
         { name: 'Exit', value: 'exit' }
       ]
     }]);
@@ -165,64 +94,85 @@ async function startMimocodeChat(config: Config, skipMenu = false): Promise<void
   }
 
   if (action === 'exit') process.exit(0);
+  if (action === 'setup') {
+    const { runSetup } = await import('../core/config');
+    await runSetup(config);
+    return startMimocodeChat(config);
+  }
   if (action === 'clear') {
-    const sessionId = await getOrCreateSession(currentWorkspace);
+    const sessionId = await getOrCreateSession(process.cwd());
     await clearSessionMessages(sessionId);
     messageHistory = [];
     await saveCLIHistory();
     console.log(chalk.dim('History cleared.'));
+    return startMimocodeChat(config);
   }
 
-  await engine.init(currentWorkspace);
+  await engine.init(process.cwd());
   console.clear();
   renderHeader(config);
 
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: `${chalk.bold.hex('#6366f1')('> ')}`
+    prompt: chalk.bold.hex('#6366f1')('> ')
   });
 
   return new Promise((resolve) => {
     let isProcessing = false;
     let abortController = new AbortController();
 
-    const ask = () => { if (!isProcessing) rl.prompt(); };
+    const ask = () => { 
+      if (!isProcessing) {
+        rl.prompt(); 
+      }
+    };
 
     rl.on('line', async (line) => {
       if (isProcessing) return;
       const input = line.trim();
       if (!input) { ask(); return; }
-
-      if (input.startsWith('/')) {
-        await handleSlashCommand(input, config);
-        ask();
-        return;
+      if (input === '/exit' || input === '/quit') {
+        rl.close();
+        process.exit(0);
       }
 
       isProcessing = true;
       abortController = new AbortController();
-      
-      const spinner = ora({ text: chalk.cyan('Thinking...'), spinner: 'dots' }).start();
 
+      if (messageHistory[messageHistory.length - 1] !== input) {
+        messageHistory.push(input);
+        await saveCLIHistory();
+        historyIndex = messageHistory.length;
+      }
+
+      const spinner = ora({ text: chalk.cyan('Thinking...'), spinner: 'dots' }).start();
+      
       try {
         process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} `);
-        let streamed = '';
-        let isFirst = true;
+        let streamedOutput = '';
+        let isFirstChunk = true;
 
-        await engine.process(input, (name, args, result) => {
-          if (isFirst) { spinner.stop(); isFirst = false; }
+        const response = await engine.process(input, (name, args, result) => {
+          if (isFirstChunk) { spinner.stop(); isFirstChunk = false; }
           if (result && (result.startsWith('✓') || result.includes('→'))) {
             process.stdout.write(`\r\x1b[K  ${chalk.dim(result)}\n`);
           }
         }, abortController.signal, (chunk) => {
-          if (isFirst) { spinner.stop(); isFirst = false; }
+          if (isFirstChunk) {
+            spinner.stop();
+            isFirstChunk = false;
+          }
           process.stdout.write(chunk);
-          streamed += chunk;
+          streamedOutput += chunk;
         });
 
-        if (!streamed) spinner.stop();
-        process.stdout.write('\n');
+        spinner.stop();
+        if (!streamedOutput && response.content) {
+          process.stdout.write(await marked.parse(response.content));
+        } else {
+          process.stdout.write('\n');
+        }
       } catch (e: any) {
         spinner.stop();
         console.log(chalk.red(`\nError: ${e.message}`));
@@ -232,15 +182,45 @@ async function startMimocodeChat(config: Config, skipMenu = false): Promise<void
       }
     });
 
-    rl.on('SIGINT', () => {
-      if (isProcessing) {
-        abortController.abort();
-        isProcessing = false;
-        console.log(chalk.yellow('\nCancelled.'));
-        ask();
-      } else {
-        process.exit(0);
+    const onKeyPress = (str: string, key: any) => {
+      if (!key) return;
+      if (key.ctrl && key.name === 'c') {
+        if (isProcessing) {
+          abortController.abort();
+          isProcessing = false;
+          console.log(chalk.yellow('\nCancelled.'));
+          ask();
+        } else {
+          rl.close();
+          process.exit(0);
+        }
       }
+      if (key.name === 'up' && historyIndex > 0 && !isProcessing) {
+        historyIndex--;
+        (rl as any).line = messageHistory[historyIndex];
+        (rl as any).cursor = (rl as any).line.length;
+        (rl as any)._refreshLine();
+      }
+      if (key.name === 'down' && !isProcessing) {
+        if (historyIndex < messageHistory.length - 1) {
+          historyIndex++;
+          (rl as any).line = messageHistory[historyIndex];
+          (rl as any).cursor = (rl as any).line.length;
+          (rl as any)._refreshLine();
+        } else {
+          historyIndex = messageHistory.length;
+          (rl as any).line = '';
+          (rl as any).cursor = 0;
+          (rl as any)._refreshLine();
+        }
+      }
+    };
+
+    process.stdin.on('keypress', onKeyPress);
+
+    rl.on('close', () => {
+      process.stdin.removeListener('keypress', onKeyPress);
+      resolve();
     });
 
     ask();
@@ -262,23 +242,35 @@ program
       const spinner = ora({ text: chalk.cyan(`Executing: ${cmd}...`), spinner: 'dots' }).start();
       try {
         process.stdout.write(`\n${chalk.hex('#6366f1')('✦')} Result:\n`);
-        let isFirst = true;
-        await engine.process(cmd, (name, args, result) => {
-          if (isFirst) { spinner.stop(); isFirst = false; }
+        let streamedOutput = '';
+        let isFirstChunk = true;
+
+        const response = await engine.process(cmd, (name, args, result) => {
+          if (isFirstChunk) { spinner.stop(); isFirstChunk = false; }
           if (result && (result.startsWith('✓') || result.includes('→'))) {
             process.stdout.write(`\r\x1b[K  ${chalk.dim(result)}\n`);
           }
         }, undefined, (chunk) => {
-          if (isFirst) { spinner.stop(); isFirst = false; }
+          if (isFirstChunk) {
+            spinner.stop();
+            isFirstChunk = false;
+          }
           process.stdout.write(chunk);
+          streamedOutput += chunk;
         });
         spinner.stop();
-        process.stdout.write('\n');
-        await startMimocodeChat(config, true);
+        if (!streamedOutput && response.content) {
+          process.stdout.write(await marked.parse(response.content));
+        } else {
+          process.stdout.write('\n');
+        }
       } catch (e: any) {
         spinner.stop();
-        process.exit(1);
+        console.error(chalk.red(`\nError: ${e.message}`));
       }
+      
+      // Always stay in interactive mode
+      await startMimocodeChat(config, true);
     } else {
       await startMimocodeChat(config);
     }

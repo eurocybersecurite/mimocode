@@ -178,15 +178,34 @@ export async function runSetup(config: Config) {
   try {
     let models: string[] = [];
     if (config.runtime === 'ollama') {
-      const res = await axios.get(`${config.endpoint}/api/tags`);
-      models = res.data.models.map((m: any) => m.name);
+      try {
+        const res = await axios.get(`${config.endpoint}/api/tags`, { timeout: 3000 });
+        if (res.data && Array.isArray(res.data.models)) {
+          models = res.data.models.map((m: any) => m.name);
+        }
+      } catch (ollamaErr) {
+        // Fallback to 127.0.0.1 if localhost failed
+        if (config.endpoint.includes('localhost')) {
+          const fallbackEndpoint = config.endpoint.replace('localhost', '127.0.0.1');
+          const res = await axios.get(`${fallbackEndpoint}/api/tags`, { timeout: 3000 });
+          if (res.data && Array.isArray(res.data.models)) {
+            models = res.data.models.map((m: any) => m.name);
+            config.endpoint = fallbackEndpoint; // Update to working endpoint
+          }
+        } else {
+          throw ollamaErr;
+        }
+      }
     } else {
-      const res = await axios.get(`${config.endpoint}/v1/models`);
-      models = res.data.data.map((m: any) => m.id);
+      // LM Studio, Llama.cpp, MLX usually follow OpenAI-like /v1/models
+      const res = await axios.get(`${config.endpoint}/v1/models`, { timeout: 5000 });
+      if (res.data && Array.isArray(res.data.data)) {
+        models = res.data.data.map((m: any) => m.id);
+      }
     }
-    spinner.succeed(`Found ${models.length} models.`);
 
     if (models.length > 0) {
+      spinner.succeed(`Found ${models.length} models.`);
       const { model } = await inquirer.prompt([{
         type: 'list',
         name: 'model',
@@ -195,9 +214,11 @@ export async function runSetup(config: Config) {
         default: config.model
       }]);
       config.model = model;
+    } else {
+      throw new Error('No models found in response.');
     }
-  } catch (e) {
-    spinner.warn('Could not fetch models automatically. Please enter manually.');
+  } catch (e: any) {
+    spinner.warn(`Could not fetch models automatically (${e.message}). Please enter manually.`);
     const { model } = await inquirer.prompt([{
       type: 'input',
       name: 'model',
