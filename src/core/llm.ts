@@ -109,8 +109,9 @@ export async function callLLMWithTools(
   signal?: AbortSignal
 ): Promise<LLMResponse> {
   const cwd = process.cwd();
-  const filteredMessages = messages.filter(m => m.role !== 'system');
-  const recentMessages = filteredMessages.slice(-30);
+  const systemMessages = messages.filter(m => m.role === 'system');
+  const userAssistantMessages = messages.filter(m => m.role !== 'system');
+  const recentMessages = userAssistantMessages.slice(-30);
   const userQuery = recentMessages[recentMessages.length - 1]?.content.toLowerCase() || "";
 
   // DYNAMIC CONTEXT PRUNING: Only include relevant tools
@@ -234,7 +235,7 @@ When you need to perform an action, use this EXACT format:
 
 Remember: You MUST use tools for all actions. Don't just talk, ACT.`;
 
-  const combinedSystemPrompt = `${baseSystemPrompt}\n\n${toolSystemPrompt}`;
+  const combinedSystemPrompt = `${baseSystemPrompt}\n\n${systemMessages.map(m => m.content).join('\n\n')}\n\n${toolSystemPrompt}`;
 
   const chatMessagesWithTools: Message[] = [
     { role: 'system', content: combinedSystemPrompt },

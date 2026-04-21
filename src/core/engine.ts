@@ -39,6 +39,8 @@ export class MimocodeEngine {
     
     while (curr !== root) {
       const files = fs.readdirSync(curr);
+      
+      // Look for root-level MD files
       const mdFiles = files.filter(f => f.endsWith('.md') && (f.toUpperCase().includes('MIMOCODE') || f.toUpperCase().includes('GUIDE') || f.toUpperCase().includes('INSTRUCTIONS') || f.toUpperCase().includes('PROJECT')));
       
       for (const file of mdFiles) {
@@ -48,6 +50,20 @@ export class MimocodeEngine {
           context = `\n--- Manual found at ${p} ---\n${content}\n` + context;
         } catch (e) {}
       }
+
+      // NEW: Look for .mimocode/manuals directory
+      const mimocodeDir = path.join(curr, '.mimocode', 'manuals');
+      if (fs.existsSync(mimocodeDir)) {
+        try {
+          const manualFiles = fs.readdirSync(mimocodeDir).filter(f => f.endsWith('.md'));
+          for (const file of manualFiles) {
+            const p = path.join(mimocodeDir, file);
+            const content = fs.readFileSync(p, 'utf-8');
+            context = `\n--- [MIMOCODE MANUAL] ${file} ---\n${content}\n` + context;
+          }
+        } catch (e) {}
+      }
+
       curr = path.dirname(curr);
     }
     
