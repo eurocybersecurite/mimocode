@@ -17,6 +17,7 @@ function isPathSafe(filePath: string): boolean {
   return fullPath.startsWith(WORKSPACE_ROOT);
 }
 
+import { diffLines } from 'diff';
 import { showDiff } from './diff';
 import { verifyFileWritten, verifyFileDeleted, verifyDirectoryCreated, verifyCommandSuccess } from './agent_verifier';
 
@@ -78,10 +79,13 @@ Example: <tool_call name="write_file" args='{"filePath": "test.txt", "content": 
       await fs.ensureDir(path.dirname(fullPath));
       await fs.writeFile(fullPath, content, 'utf-8');
       
-      const oldLines = oldContent.split('\n').length;
-      const newLines = content.split('\n').length;
-      const added = Math.max(0, newLines - oldLines);
-      const removed = Math.max(0, oldLines - newLines);
+      const changes = diffLines(oldContent, content);
+      let added = 0;
+      let removed = 0;
+      changes.forEach(part => {
+        if (part.added) added += part.count || 0;
+        if (part.removed) removed += part.count || 0;
+      });
 
       return `✓ Edit ${filePath} → Accepted (+${added}, -${removed})`;
       },
